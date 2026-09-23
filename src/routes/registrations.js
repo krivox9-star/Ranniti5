@@ -27,7 +27,7 @@ router.post('/registrations', async (req, res) => {
   const attendeeNames = (Array.isArray(body.attendeeNames) ? body.attendeeNames : [body.attendee1, body.attendee2, body.attendee3, body.attendee4])
     .map((value) => String(value || '').trim())
     .filter(Boolean);
-  if (!name || !email || password.length < 8 || !packageName || !baseAmount) {
+  if (!name || !email || password.length < 8 || !packageName || !amount) {
     return res.status(400).json({ success: false, message: !packages[packageName] && packageName ? `Unknown package: ${packageName}` : 'Name, email, password (8+ characters) and package are required' });
   }
   const id = `RN5-REG-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;

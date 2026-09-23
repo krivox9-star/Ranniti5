@@ -384,6 +384,10 @@
         border-color: rgba(240,75,53,0.5);
         box-shadow: 0 20px 40px rgba(240,75,53,0.12);
       }
+      .package-card.recommended h3,
+      .package-card.recommended .price .total {
+        color: var(--accent);
+      }
       .pkg-badge {
         position: absolute;
         right: 18px;
@@ -420,6 +424,9 @@
       }
       .price-breakdown { display: grid; gap: 4px; margin-top: 16px; color: var(--muted); font-size: 0.85rem; }
       .price-breakdown strong { color: var(--text); }
+      .package-includes { margin: 34px auto 0; padding: 22px 26px; max-width: 720px; border: 1px solid rgba(247,165,92,.25); border-radius: 16px; text-align: center; background: rgba(255,255,255,.04); }
+      .package-includes h3 { margin: 0 0 10px; color: var(--text); }
+      .package-includes p { margin: 6px 0 0; color: var(--muted); }
       .pricing-line {
         margin-top: 16px;
         color: var(--muted);
@@ -675,8 +682,8 @@
       <section class="section" id="packages">
         <div class="container">
           <div class="section-title">
-            <h2>Event Packages</h2>
-            <p>Select your preferred participation category. All delegates receive luxury accommodation at Dhordo, premium meals, and exclusive summit kits.</p>
+            <h2>Accommodation Packages</h2>
+            <p>Select your preferred accommodation package. All packages include accommodation, meals, and event access.</p>
           </div>
 
           <div class="package-grid">
@@ -688,7 +695,7 @@
                 <span class="total">14,999.00</span>
               </div>
               <div class="price-breakdown"><span>₹14,999.00 + 18% GST</span></div>
-              <p>Group sharing with all meals and event access. Three names are required.</p>
+              <p>Group sharing with all meals and event access.</p>
               <a class="select-btn package-select" href="/register?package=Triple%20Occupancy">Select Category</a>
             </article>
 
@@ -699,31 +706,36 @@
                 <span class="total">17,499.00</span>
               </div>
               <div class="price-breakdown"><span>₹17,499.00 + 18% GST</span></div>
-              <p>Shared luxury tent/room with all meals and event access. Two names are required.</p>
+              <p>Shared luxury tent/room with all meals and event access.</p>
               <a class="select-btn package-select" href="/register?package=Double%20Occupancy">Select Category</a>
             </article>
 
             <article class="package-card">
-              <h3>1 Member + 1 Spouse + 1 Kid (Up to 5 years)</h3>
+              <h3>Member + Spouse + Kid (Up to 5 Years)</h3>
               <div class="price">
                 <span class="currency">₹</span>
                 <span class="total">25,422.88</span>
               </div>
               <div class="price-breakdown"><span>₹25,422.88 + 18% GST</span></div>
-              <p>Stay for member, one spouse and one child up to 5 years. Three names are required.</p>
+              <p>Stay for 1 member, 1 spouse and 1 child up to 5 years.</p>
               <a class="select-btn package-select" href="/register?package=1%20Member%20%2B%201%20Spouse%20%2B%201%20Kid%20%28Up%20to%205%20years%29">Select Category</a>
             </article>
 
             <article class="package-card">
-              <h3>1 Member + 1 Spouse + 1 Kid (Above 5 years)</h3>
+              <h3>Member + Spouse + Kid (Above 5 Years)</h3>
               <div class="price">
                 <span class="currency">₹</span>
                 <span class="total">29,660.17</span>
               </div>
               <div class="price-breakdown"><span>₹29,660.17 + 18% GST</span></div>
-              <p>Stay for member, one spouse and one child above 5 years. Three names are required.</p>
+              <p>Stay for 1 member, 1 spouse and 1 child above 5 years.</p>
               <a class="select-btn package-select" href="/register?package=1%20Member%20%2B%201%20Spouse%20%2B%201%20Kid%20%28Above%205%20years%29">Select Category</a>
             </article>
+          </div>
+          <div class="package-includes">
+            <h3>✨ Package Includes</h3>
+            <p><strong>Accommodation &bull; All Meals &bull; Event Access</strong></p>
+            <p><em>GST will be charged additionally at 18% on the package price.</em></p>
           </div>
         </div>
       </section>
