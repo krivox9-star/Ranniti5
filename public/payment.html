@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link rel="icon" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Complete your Ranniti 5 manual payment." />
+    <title>Complete Payment — Ranniti 5</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <style>
+      :root { --bg:#101010; --panel:rgba(28,22,20,.94); --text:#f6f2ee; --muted:#d2c7c0; --accent:#f04b35; --accent-2:#f7a55c; --line:rgba(255,255,255,.1); }
+      * { box-sizing:border-box; }
+      body { margin:0; min-height:100vh; color:var(--text); font-family:"Barlow",sans-serif; background:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px),radial-gradient(circle at 80% 0%,rgba(240,75,53,.16),transparent 30%),linear-gradient(180deg,#0d0d0d,#110f0f); background-size:72px 72px,72px 72px,auto,auto; }
+      a { color:inherit; text-decoration:none; }
+      h1,h2,h3 { margin:0; font-family:"Bebas Neue",sans-serif; letter-spacing:.04em; }
+      .topbar { border-bottom:1px solid var(--line); background:rgba(10,10,10,.78); backdrop-filter:blur(12px); }
+      .nav, main { width:min(900px,calc(100% - 40px)); margin:auto; }
+      .nav { min-height:82px; display:flex; align-items:center; justify-content:space-between; gap:20px; }
+      .logo img { width:auto; height:62px; display:block; background:#fff; }
+      .back { color:var(--muted); font-weight:700; }
+      .nav-side { display:flex; align-items:center; gap:22px; }
+      .enquire { display:flex; flex-direction:column; align-items:flex-end; line-height:1.15; color:var(--text); }
+      .enquire span { color:var(--accent-2); font-size:10px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; }
+      .enquire strong { font-size:14px; white-space:nowrap; }
+      main { padding:68px 0 90px; }
+      .intro { margin-bottom:28px; }
+      .kicker { color:var(--accent-2); font-size:11px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; }
+      .intro h1 { margin-top:10px; font-size:clamp(3rem,7vw,5.5rem); line-height:.95; }
+      .intro p { margin-top:14px; color:var(--muted); font-size:1.05rem; line-height:1.6; }
+      .payment-card { padding:clamp(22px,5vw,42px); border:1px solid var(--line); border-radius:22px; background:var(--panel); }
+      .selected { padding-bottom:22px; border-bottom:1px solid var(--line); }
+      .selected small { color:var(--muted); }
+      .selected h2 { margin-top:7px; font-size:2rem; }
+      .amount { margin-top:12px; color:var(--accent-2); font:3.6rem/.9 "Bebas Neue",sans-serif; }
+      .payment-grid { display:grid; grid-template-columns:220px minmax(0,1fr); gap:30px; margin-top:28px; align-items:start; }
+      .qr { display:grid; place-items:center; padding:12px; border-radius:14px; background:#fff; }
+      .qr img { width:196px; height:196px; display:block; }
+      .copy { color:var(--muted); line-height:1.55; }
+      .copy strong { color:var(--text); }
+      .upi { display:inline-block; margin-top:8px; padding:8px 10px; border-radius:8px; color:var(--accent-2); background:rgba(247,165,92,.1); font-weight:700; }
+      .bank { margin-top:28px; padding:18px; border:1px solid var(--line); border-radius:14px; background:rgba(255,255,255,.03); }
+      .bank h3 { font-size:1.5rem; }
+      .bank p { margin:9px 0 0; color:var(--muted); line-height:1.65; }
+      .bank strong { color:var(--text); }
+      .fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; margin-top:28px; }
+      .field { display:flex; flex-direction:column; gap:7px; }
+      label { color:var(--muted); font-size:.85rem; font-weight:600; }
+      input { width:100%; padding:13px 14px; border:1px solid rgba(255,255,255,.12); border-radius:10px; outline:0; background:rgba(0,0,0,.22); color:var(--text); font:inherit; }
+      input:focus { border-color:var(--accent-2); box-shadow:0 0 0 3px rgba(247,165,92,.12); }
+      .button { width:100%; min-height:50px; margin-top:24px; border:0; border-radius:10px; color:#fff; background:linear-gradient(135deg,var(--accent),#d93f2e); font:700 1rem "Barlow",sans-serif; cursor:pointer; }
+      .success { display:none; margin-top:16px; padding:14px; border:1px solid rgba(34,197,94,.28); border-radius:10px; color:#b8f7cd; background:rgba(34,197,94,.12); line-height:1.45; }
+      @media (max-width:700px) { .nav { min-height:72px; } .logo img { width:auto; height:50px; } .nav-side { gap:12px; } .enquire strong { font-size:13px; } main { padding-top:42px; } .payment-grid,.fields { grid-template-columns:1fr; } .qr { width:220px; max-width:100%; } }
+    </style>
+  </head>
+  <body>
+    <header class="topbar"><div class="nav"><a href="/" class="logo" aria-label="BNI Kutch home"><img src="/assets/bni-kutch-logo.png" alt="BNI Kutch" /></a><div class="nav-side"><a class="enquire" href="tel:+919998813569"><span>Enquire</span><strong>+91 9998813569</strong></a><a class="back" href="/register">Back to registration</a></div></div></header>
+    <main>
+      <div class="intro"><span class="kicker">Step 2 · Manual payment</span><h1>Complete Your Payment</h1><p>Pay the exact amount below, then submit your transaction details for verification.</p></div>
+      <section class="payment-card">
+        <div class="selected"><small>Selected package</small><h2 id="packageName">Triple Occupancy</h2><div class="amount" id="paymentAmount">₹17,698.82</div></div>
+        <div class="payment-grid"><div class="qr"><img id="paymentQr" alt="UPI payment QR code" /></div><div class="copy"><p>Scan this QR code with any UPI app or pay directly to:</p><span class="upi">munjalshah9@okicici</span><p>After payment, enter your UTR ID and attach a screenshot or receipt as proof.</p></div></div>
+        <div class="bank"><h3>Bank details</h3><p><strong>Imperial Innoventures</strong><br />Account No.: <strong>0114137470</strong><br />Kotak Mahindra Bank<br />Gandhidham Branch<br />IFSC: <strong>KKBK0000822</strong><br />GST NUMBER: <strong>24ADSPV9796P1ZW</strong></p></div>
+        <form id="paymentForm"><div class="fields"><div class="field"><label for="utrId">UTR ID</label><input id="utrId" name="utrId" required placeholder="Enter your UTR / transaction ID" /></div><div class="field"><label for="paymentProof">Payment proof</label><input id="paymentProof" name="paymentProof" type="file" accept="image/*,.pdf" required /></div></div><button class="button" type="submit">Submit Payment Details</button><div class="success" id="paymentSuccess" role="status">Payment details submitted successfully. Your payment is pending verification.</div></form>
+      </section>
+    </main>
+    <script>
+      const packages = { 'Triple Occupancy':'17,698.82', 'Double Occupancy':'20,648.82', '1 Member + 1 Spouse + 1 Kid (Up to 5 years)':'29,999', '1 Member + 1 Spouse + 1 Kid (Above 5 years)':'34,999' };
+      const legacyPackages = { '1 Member + 1 Family Member + 1 Kid (Up to 5 years)':'1 Member + 1 Spouse + 1 Kid (Up to 5 years)', '1 Member + 1 Family Member + 1 Kid (Above 5 years)':'1 Member + 1 Spouse + 1 Kid (Above 5 years)' };
+      const queryPackage = legacyPackages[new URLSearchParams(window.location.search).get('package')] || new URLSearchParams(window.location.search).get('package');
+      const packageName = packages[queryPackage] ? queryPackage : 'Triple Occupancy';
+      const amount = packages[packageName];
+      document.getElementById('packageName').textContent = packageName;
+      document.getElementById('paymentAmount').textContent = '₹' + amount;
+      document.getElementById('paymentQr').src = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + encodeURIComponent(`upi://pay?pa=munjalshah9@okicici&pn=Imperial%20Innoventures&am=${amount.replace(',', '')}&cu=INR`);
+      document.getElementById('paymentForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const registrationId = new URLSearchParams(window.location.search).get('registrationId');
+        const transactionId = document.getElementById('utrId').value.trim();
+        const response = await fetch('/api/payments/manual', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ registrationId, transactionId }) });
+        const body = await response.json();
+        if (!response.ok) { document.getElementById('paymentSuccess').textContent = body.message || 'Payment submission failed'; return; }
+        document.getElementById('paymentSuccess').style.display = 'block';
+        window.setTimeout(() => { window.location.href = '/confirmation?registrationId=' + encodeURIComponent(registrationId); }, 600);
+      });
+    </script>
+  </body>
+</html>

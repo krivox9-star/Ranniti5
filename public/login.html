@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <link rel="icon" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sign in | RANNITI 5</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700&family=Barlow+Condensed:wght@700&display=swap" rel="stylesheet" />
+  <style>
+    :root { --red:#d71920; --ink:#171515; --paper:#f7f6f3; --muted:#77736f; --line:#e5e2de; }
+    * { box-sizing:border-box; } body { margin:0; min-height:100vh; display:grid; place-items:center; color:var(--ink); background:linear-gradient(135deg,#171515 0 38%,#f7f6f3 38%); font:15px Barlow,sans-serif; } a { color:var(--red); font-weight:700; text-decoration:none; }
+    .card { width:min(430px,calc(100% - 32px)); padding:34px; background:#fff; border:1px solid var(--line); border-radius:8px; box-shadow:0 25px 70px #0002; } .logo { display:block; width:100%; height:auto; margin:0 0 18px; } .eyebrow { color:var(--red); font-size:11px; letter-spacing:.15em; font-weight:700; } h1 { margin:9px 0 8px; color:var(--red); font:700 42px Barlow Condensed,sans-serif; } p { color:var(--muted); line-height:1.5; } label { display:block; margin-top:18px; font-weight:600; } input { width:100%; margin-top:7px; min-height:45px; border:1px solid var(--line); border-radius:5px; padding:0 12px; font:inherit; } input:focus { outline:2px solid #f5b1b4; border-color:var(--red); } button { width:100%; min-height:47px; margin-top:22px; border:0; border-radius:5px; color:#fff; background:var(--red); font-weight:700; cursor:pointer; } .links { display:flex; justify-content:space-between; gap:10px; margin-top:18px; font-size:13px; } #message { min-height:20px; margin-top:14px; color:var(--red); } 
+  </style>
+</head>
+<body>
+  <main class="card"><a href="/"><img class="logo" src="/assets/ranniti-5-logo.png" alt="RANNITI 5" /></a><div class="eyebrow">RANNITI 5 / BNI KUTCH</div><h1>Sign in</h1><p>Members can view payment status, invoices and entry passes. Admins use the same sign-in.</p><form id="loginForm"><label>Email<input id="email" type="email" autocomplete="username" required /></label><label>Password<input id="password" type="password" autocomplete="current-password" required /></label><button>Continue</button><div id="message"></div></form><div class="links"><a href="/reset-password">Forgot password?</a><a href="/register">Register</a></div></main>
+  <script>
+    const form = document.getElementById('loginForm'); const message = document.getElementById('message');
+    fetch('/api/health').then((response) => response.json()).then((body) => { if (body.database && body.database !== 'connected' && body.message) message.textContent = body.message; }).catch(() => {});
+    form.onsubmit = async (event) => { event.preventDefault(); message.textContent = 'Signing in...'; try { const response = await fetch('/api/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ email:document.getElementById('email').value.trim(), password:document.getElementById('password').value }) }); const raw = await response.text(); let body = {}; try { body = raw ? JSON.parse(raw) : {}; } catch { body = { message: raw.slice(0, 180) || 'Server error' }; } if (!response.ok || !body.success) { message.textContent = body.message || 'Unable to sign in'; return; } const storageKey = body.user.role === 'admin' ? 'ranniti_admin_token' : 'ranniti_member_token'; localStorage.setItem(storageKey, body.token); window.location.href = body.user.role === 'admin' ? '/admin' : '/member'; } catch (error) { message.textContent = error.message || 'Unable to sign in'; } };
+  </script>
+</body>
+</html>

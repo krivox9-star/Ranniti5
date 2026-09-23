@@ -1,0 +1,38 @@
+{
+  "name": "ranniti-backend",
+  "version": "1.0.0",
+  "description": "MongoDB-backed Ranniti 5 registration, payment, entry pass, and check-in system",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": [
+    "backend",
+    "express",
+    "api",
+    "auth",
+    "mongodb",
+    "brevo",
+    "razorpay"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.3",
+    "mongodb": "^7.6.0",
+    "pdfkit": "^0.15.0",
+    "qrcode": "^1.5.4",
+    "serverless-http": "^3.2.0",
+    "uuid": "^11.1.1"
+  },
+  "overrides": {
+    "qs": "6.16.0"
+  }
+}

@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link rel="icon" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Register for Ranniti 5 Strategy Summit by BNI Kutch." />
+    <title>Register — Ranniti 5</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --bg: #101010;
+        --panel: rgba(28, 22, 20, 0.92);
+        --text: #f6f2ee;
+        --muted: #d2c7c0;
+        --muted-2: #b9a89f;
+        --accent: #f04b35;
+        --accent-2: #f7a55c;
+        --line: rgba(255, 255, 255, 0.1);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        color: var(--text);
+        font-family: "Barlow", sans-serif;
+        background:
+          linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px),
+          radial-gradient(circle at 80% 0%, rgba(240,75,53,0.16), transparent 30%),
+          linear-gradient(180deg, #0d0d0d, #110f0f);
+        background-size: 72px 72px, 72px 72px, auto, auto;
+      }
+      a { color: inherit; text-decoration: none; }
+      h1, h2, h3 { margin: 0; font-family: "Bebas Neue", sans-serif; letter-spacing: .04em; }
+      .topbar { border-bottom: 1px solid var(--line); background: rgba(10,10,10,.78); backdrop-filter: blur(12px); }
+      .nav { width: min(1180px, calc(100% - 40px)); min-height: 82px; margin: auto; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+      .logo img { width: auto; height: 62px; display: block; background: #fff; }
+      .back-link { color: var(--muted); font-weight: 700; }
+      .back-link:hover { color: var(--text); }
+      .nav-side { display: flex; align-items: center; gap: 22px; }
+      .enquire { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.15; color: var(--text); }
+      .enquire span { color: var(--accent-2); font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
+      .enquire strong { font-size: 14px; white-space: nowrap; }
+      main { width: min(1180px, calc(100% - 40px)); margin: auto; padding: 68px 0 90px; }
+      .intro { max-width: 700px; margin-bottom: 28px; }
+      .kicker { color: var(--accent-2); font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
+      .intro h1 { margin-top: 10px; font-size: clamp(3.2rem, 7vw, 5.8rem); line-height: .95; }
+      .intro p { margin: 14px 0 0; color: var(--muted); line-height: 1.6; font-size: 1.05rem; }
+      .layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 24px; align-items: start; }
+      .form-card, .summary { border: 1px solid var(--line); border-radius: 22px; background: var(--panel); }
+      .form-card { padding: clamp(22px, 4vw, 38px); }
+      .summary { position: sticky; top: 24px; padding: 24px; background: linear-gradient(145deg, rgba(240,75,53,.14), rgba(255,255,255,.035)); }
+      .summary small, .form-kicker { color: var(--accent-2); font-size: 11px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase; }
+      .summary h2 { margin-top: 12px; font-size: 2rem; line-height: 1.05; }
+      .summary-total { display: block; margin-top: 24px; font: 3.6rem/.9 "Bebas Neue", sans-serif; }
+      .summary-note { margin: 12px 0 0; color: var(--muted); font-size: .9rem; line-height: 1.55; }
+      .section-title { margin: 26px 0 14px; padding-bottom: 10px; border-bottom: 1px solid var(--line); font-size: 1.2rem; font-weight: 700; }
+      .section-title:first-of-type { margin-top: 0; }
+      .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+      .field { display: flex; flex-direction: column; gap: 7px; }
+      .field.full { grid-column: 1 / -1; }
+      .attendee-block { margin-top: 16px; padding: 16px; border: 1px solid rgba(247,165,92,.28); border-radius: 14px; background: rgba(247,165,92,.06); }
+      .attendee-rule { margin: 0 0 14px; color: var(--accent-2); font-size: .92rem; line-height: 1.5; }
+      label { color: var(--muted); font-size: .85rem; font-weight: 600; }
+      input, select, textarea { width: 100%; padding: 13px 14px; border: 1px solid rgba(255,255,255,.12); border-radius: 10px; outline: 0; background: rgba(0,0,0,.22); color: var(--text); font: inherit; text-transform: uppercase; }
+      textarea { min-height: 110px; resize: vertical; }
+      input:focus, select:focus, textarea:focus { border-color: var(--accent-2); box-shadow: 0 0 0 3px rgba(247,165,92,.12); }
+      #gstNumber { text-transform: uppercase; }
+      option { background: #211a18; }
+      .consents { display: grid; gap: 12px; margin-top: 22px; }
+      .consent { display: flex; align-items: flex-start; gap: 10px; color: var(--muted); font-size: .9rem; line-height: 1.45; }
+      .consent input { width: 17px; height: 17px; flex: 0 0 auto; margin-top: 2px; accent-color: var(--accent); }
+      .button { width: 100%; min-height: 50px; margin-top: 24px; border: 0; border-radius: 10px; color: #fff; background: linear-gradient(135deg, var(--accent), #d93f2e); font: 700 1rem "Barlow", sans-serif; cursor: pointer; box-shadow: 0 15px 35px rgba(240,75,53,.2); }
+      .success { display: none; margin-top: 16px; padding: 13px 15px; border: 1px solid rgba(34,197,94,.28); border-radius: 10px; color: #b8f7cd; background: rgba(34,197,94,.12); }
+      .payment-step { display: none; margin-top: 24px; padding: clamp(22px, 4vw, 34px); border: 1px solid rgba(247,165,92,.28); border-radius: 22px; background: rgba(28,22,20,.96); }
+      .payment-step.visible { display: block; }
+      .payment-step h2 { margin-top: 8px; font-size: clamp(2rem, 5vw, 3rem); }
+      .payment-grid { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 28px; margin-top: 22px; align-items: start; }
+      .qr-box { display: grid; place-items: center; padding: 12px; border-radius: 14px; background: #fff; }
+      .qr-box img { width: 196px; height: 196px; display: block; }
+      .payment-copy { color: var(--muted); line-height: 1.55; }
+      .payment-copy strong { color: var(--text); }
+      .upi-id { display: inline-block; margin-top: 8px; padding: 8px 10px; border-radius: 8px; color: var(--accent-2); background: rgba(247,165,92,.1); font-weight: 700; }
+      .payment-amount { margin: 16px 0 20px; color: var(--text); font: 2.8rem/.9 "Bebas Neue", sans-serif; }
+      .payment-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 24px; }
+      .bank-details { margin-top: 24px; padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: rgba(255,255,255,.03); }
+      .bank-details h3 { font-size: 1.45rem; }
+      .bank-details p { margin-top: 9px; color: var(--muted); line-height: 1.65; }
+      .bank-details strong { color: var(--text); }
+      .payment-success { display: none; margin-top: 16px; color: #b8f7cd; }
+      @media (max-width: 700px) {
+        .nav { min-height: 72px; }
+        .logo img { width: auto; height: 50px; }
+        .nav-side { gap: 12px; }
+        .enquire strong { font-size: 13px; }
+        main { padding-top: 42px; }
+        .layout, .grid { grid-template-columns: 1fr; }
+        .field.full { grid-column: auto; }
+        .summary { position: static; grid-row: 1; }
+        .payment-grid, .payment-fields { grid-template-columns: 1fr; }
+        .qr-box { width: 220px; max-width: 100%; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="nav">
+        <a href="/" class="logo" aria-label="BNI Kutch home"><img src="/assets/bni-kutch-logo.png" alt="BNI Kutch" /></a>
+        <div class="nav-side">
+          <a class="enquire" href="tel:+919998813569"><span>Enquire</span><strong>+91 9998813569</strong></a>
+          <a class="back-link" href="/">Back to event</a>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <div class="intro">
+        <span class="kicker">Ranniti 5 · 18 December 2026</span>
+        <h1>Delegate Registration</h1>
+        <p>Complete your details to reserve your place at the Strategy Summit in Dhordo, Kutch.</p>
+      </div>
+
+      <div class="layout">
+        <form class="form-card" id="registrationForm">
+          <div class="section-title">Delegate Information</div>
+          <div class="grid">
+            <div class="field"><label for="fullName">Full name</label><input id="fullName" name="fullName" required autocomplete="name" /></div>
+            <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" required autocomplete="email" /></div>
+            <div class="field"><label for="password">Account password</label><input id="password" name="password" type="password" minlength="8" required autocomplete="new-password" /></div>
+            <div class="field"><label for="mobile">Mobile</label><input id="mobile" name="mobile" type="tel" required autocomplete="tel" /></div>
+
+            <div class="field"><label for="region">BNI Region</label><input id="region" name="region" required /></div>
+            <div class="field"><label for="chapter">BNI Chapter</label><input id="chapter" name="chapter" required /></div>
+            <div class="field"><label for="gstNumber">GST NUMBER <span>(OPTIONAL)</span></label><input id="gstNumber" name="gstNumber" autocapitalize="characters" spellcheck="false" placeholder="GST NUMBER" style="text-transform: uppercase; letter-spacing: 0.04em;" /></div>
+            <div class="field"><label for="city">City</label><input id="city" name="city" required autocomplete="address-level2" /></div>
+            <div class="field"><label for="dateOfBirth">Date of Birth</label><input id="dateOfBirth" name="dateOfBirth" type="date" required /></div>
+            <div class="field"><label for="hoodieSize">Hoodie Size</label><select id="hoodieSize" name="hoodieSize" required><option value="">Select size</option><option>XS</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option><option>XXXL</option></select></div>
+          </div>
+
+          <div class="section-title">Business Intent</div>
+          <div class="grid">
+            <div class="field full"><label for="businessIntent">Specific Ask for Business</label><textarea id="businessIntent" name="businessIntent" required placeholder="Tell us what business connection, introduction or opportunity you are looking for."></textarea></div>
+            <div class="field full">
+              <label for="packageSelect">Choose package</label>
+              <select id="packageSelect" name="package" required>
+                <option value="Triple Occupancy">Triple Occupancy — ₹17,698.82</option>
+                <option value="Double Occupancy">Double Occupancy — ₹20,648.82</option>
+                <option value="1 Member + 1 Spouse + 1 Kid (Up to 5 years)">Member + Spouse + Kid up to 5 years — ₹29,999</option>
+                <option value="1 Member + 1 Spouse + 1 Kid (Above 5 years)">Member + Spouse + Kid above 5 years — ₹34,999</option>
+              </select>
+              <div class="attendee-block" id="attendeeBlock">
+                <p class="attendee-rule" id="attendeeRule"></p>
+                <div class="grid" id="attendeeGrid"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="consents">
+            <label class="consent"><input type="checkbox" required /> <span>I confirm that the information provided is correct and understand that prices include 18% GST (GST NUMBER: 24ADSPV9796P1ZW).</span></label>
+            <label class="consent"><input type="checkbox" required /> <span>I agree to the RANNITI 5 event terms and conditions, including accommodation and cancellation policies.</span></label>
+          </div>
+          <button class="button" type="submit">Confirm Registration</button>
+          <div class="success" id="formSuccess" role="status">Details confirmed. Complete the manual payment below.</div>
+        </form>
+
+        <section class="payment-step" id="paymentStep" aria-labelledby="paymentTitle">
+          <span class="form-kicker">Step 2 · Manual payment</span>
+          <h2 id="paymentTitle">Complete your payment</h2>
+          <div class="payment-grid">
+            <div class="qr-box"><img id="paymentQr" alt="UPI payment QR code" /></div>
+            <div class="payment-copy">
+              <p>Scan the QR code with any UPI app or pay directly to:</p>
+              <span class="upi-id">munjalshah9@okicici</span>
+              <div class="payment-amount" id="paymentAmount">₹17,698.82</div>
+              <p>Pay the exact amount shown above, then submit your UTR ID and payment proof.</p>
+            </div>
+          </div>
+          <div class="payment-fields">
+            <div class="field"><label for="utrId">UTR ID</label><input id="utrId" name="utrId" form="paymentForm" required placeholder="Enter your UTR / transaction ID" /></div>
+            <div class="field"><label for="paymentProof">Payment proof</label><input id="paymentProof" name="paymentProof" form="paymentForm" type="file" accept="image/*,.pdf" required /></div>
+          </div>
+          <div class="bank-details">
+            <h3>Bank details</h3>
+            <p><strong>Imperial Innoventures</strong><br />Account No.: <strong>0114137470</strong><br />Kotak Mahindra Bank<br />Gandhidham Branch<br />IFSC: <strong>KKBK0000822</strong><br />GST NUMBER: <strong>24ADSPV9796P1ZW</strong></p>
+          </div>
+          <form id="paymentForm">
+            <button class="button" type="submit">Submit Payment Details</button>
+            <div class="payment-success" id="paymentSuccess" role="status">Payment details submitted successfully. Your payment is pending verification.</div>
+          </form>
+        </section>
+
+        <aside class="summary">
+          <small>Your selected package</small>
+          <h2 id="summaryPackage">Triple Occupancy</h2>
+          <span class="summary-total" id="summaryTotal">₹17,698.82</span>
+          <p class="summary-note">Final amount, inclusive of 18% GST. Payment instructions will be shared after registration confirmation.</p>
+          <p class="summary-note"><a href="/login" style="color:var(--accent-2);font-weight:700;">Already registered? Sign in</a></p>
+        </aside>
+      </div>
+    </main>
+
+    <script>
+      const packages = {
+        'Triple Occupancy': '17,698.82',
+        'Double Occupancy': '20,648.82',
+        '1 Member + 1 Spouse + 1 Kid (Up to 5 years)': '29,999',
+        '1 Member + 1 Spouse + 1 Kid (Above 5 years)': '34,999'
+      };
+      const packageSelect = document.getElementById('packageSelect');
+      const summaryPackage = document.getElementById('summaryPackage');
+      const summaryTotal = document.getElementById('summaryTotal');
+      const queryPackage = new URLSearchParams(window.location.search).get('package');
+      const paymentStep = document.getElementById('paymentStep');
+      const paymentQr = document.getElementById('paymentQr');
+      const paymentAmount = document.getElementById('paymentAmount');
+      const packagePeople = {
+        'Triple Occupancy': ['Name 1', 'Name 2', 'Name 3'],
+        'Double Occupancy': ['Name 1', 'Name 2'],
+        '1 Member + 1 Spouse + 1 Kid (Up to 5 years)': ['Member name', 'Spouse name', 'Kid name (up to 5 years)'],
+        '1 Member + 1 Spouse + 1 Kid (Above 5 years)': ['Member name', 'Spouse name', 'Kid name (above 5 years)']
+      };
+
+      function escapeAttr(value) {
+        return String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+      }
+
+      function renderAttendees() {
+        const labels = packagePeople[packageSelect.value] || ['Name 1'];
+        const saved = [...document.querySelectorAll('[data-attendee]')].map((input) => input.value);
+        const fullName = document.getElementById('fullName').value.trim();
+        if (!saved[0] && fullName) saved[0] = fullName;
+        document.getElementById('attendeeRule').textContent = `This package requires ${labels.length} names. Fill in every blank.`;
+        document.getElementById('attendeeGrid').innerHTML = labels.map((label, index) => `
+          <div class="field">
+            <label for="attendee${index + 1}">${escapeAttr(label)}</label>
+            <input id="attendee${index + 1}" name="attendee${index + 1}" data-attendee required autocomplete="name" value="${escapeAttr(saved[index] || '')}" />
+          </div>
+        `).join('');
+      }
+
+      function updateSummary() {
+        const packageName = packageSelect.value;
+        summaryPackage.textContent = packageName;
+        summaryTotal.textContent = '₹' + packages[packageName];
+        paymentAmount.textContent = '₹' + packages[packageName];
+        paymentQr.src = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + encodeURIComponent(`upi://pay?pa=munjalshah9@okicici&pn=Imperial%20Innoventures&am=${packages[packageName].replace(',', '')}&cu=INR`);
+        renderAttendees();
+      }
+
+      const legacyPackages = {
+        '1 Member + 1 Family Member + 1 Kid (Up to 5 years)': '1 Member + 1 Spouse + 1 Kid (Up to 5 years)',
+        '1 Member + 1 Family Member + 1 Kid (Above 5 years)': '1 Member + 1 Spouse + 1 Kid (Above 5 years)'
+      };
+      if (legacyPackages[queryPackage]) packageSelect.value = legacyPackages[queryPackage];
+      else if (packages[queryPackage]) packageSelect.value = queryPackage;
+      updateSummary();
+      packageSelect.addEventListener('change', updateSummary);
+      document.getElementById('fullName').addEventListener('input', (event) => {
+        const firstAttendee = document.querySelector('[data-attendee]');
+        if (firstAttendee && !firstAttendee.dataset.edited) firstAttendee.value = event.target.value;
+      });
+      document.getElementById('attendeeGrid').addEventListener('input', (event) => {
+        if (event.target.matches('[data-attendee]')) event.target.dataset.edited = '1';
+      });
+      const gstNumberInput = document.getElementById('gstNumber');
+      if (gstNumberInput) {
+        gstNumberInput.addEventListener('input', () => {
+          gstNumberInput.value = gstNumberInput.value.toUpperCase();
+        });
+      }
+
+      fetch('/api/health').then((response) => response.json()).then((body) => { if (body.database && body.database !== 'connected' && body.message) { const note = document.getElementById('formSuccess'); note.textContent = body.message; note.style.display = 'block'; } }).catch(() => {});
+      document.getElementById('registrationForm').addEventListener('submit', (event) => {
+        event.preventDefault();
+        const data = Object.fromEntries(new FormData(event.currentTarget).entries());
+        fetch('/api/registrations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
+          .then(async (response) => { const raw = await response.text(); let body = {}; try { body = raw ? JSON.parse(raw) : {}; } catch { body = { message: raw.slice(0, 180) || 'Server error' }; } return { response, body }; })
+          .then(({ response, body }) => { if (!response.ok) throw new Error(body.message || 'Unable to create registration'); window.location.href = '/payment?registrationId=' + encodeURIComponent(body.registration.id) + '&package=' + encodeURIComponent(packageSelect.value); })
+          .catch((error) => { document.getElementById('formSuccess').textContent = error.message; document.getElementById('formSuccess').style.display = 'block'; });
+      });
+      document.getElementById('paymentForm').addEventListener('submit', (event) => {
+        event.preventDefault();
+        document.getElementById('paymentSuccess').style.display = 'block';
+      });
+    </script>
+  </body>
+</html>
