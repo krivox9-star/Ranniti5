@@ -17,8 +17,7 @@
       a { color:inherit; text-decoration:none; }
       h1 { margin:0; font:clamp(3rem,8vw,6rem)/.92 "Bebas Neue",sans-serif; letter-spacing:.04em; }
       .topbar { border-bottom:1px solid var(--line); background:rgba(10,10,10,.78); backdrop-filter:blur(12px); }
-      .nav { width:min(1180px,calc(100% - 40px)); min-height:82px; margin:auto; display:flex; align-items:center; justify-content:space-between; gap:20px; }
-      .logo img { width:auto; height:62px; display:block; background:#fff; }
+      .nav { width:min(1180px,calc(100% - 40px)); min-height:88px; margin:auto; display:flex; align-items:center; justify-content:space-between; gap:20px; }
       .back { color:var(--muted); font-weight:700; }
       .nav-side { display:flex; align-items:center; gap:22px; }
       .enquire { display:flex; flex-direction:column; align-items:flex-end; line-height:1.15; color:var(--text); }
@@ -33,11 +32,11 @@
       .message strong { color:var(--text); }
       .details { margin-top:28px; padding:16px; border:1px solid var(--line); border-radius:12px; color:var(--muted); line-height:1.6; background:rgba(255,255,255,.03); }
       .button { display:inline-flex; align-items:center; justify-content:center; min-height:50px; margin-top:28px; padding:0 24px; border-radius:10px; color:#fff; background:linear-gradient(135deg,var(--accent),#d93f2e); font-weight:700; }
-      @media (max-width:700px) { .nav { min-height:72px; } .logo img { width:auto; height:50px; } .nav-side { gap:12px; } .enquire strong { font-size:13px; } .back { font-size:.9rem; } }
+      @media (max-width:700px) { .nav { min-height:72px; } .nav-side { gap:12px; } .enquire strong { font-size:13px; } .back { font-size:.9rem; } }
     </style>
   </head>
   <body>
-    <header class="topbar"><div class="nav"><a href="/" class="logo" aria-label="BNI Kutch home"><img src="/assets/bni-kutch-logo.png" alt="BNI Kutch" /></a><div class="nav-side"><a class="enquire" href="tel:+919998813569"><span>Enquire</span><strong>+91 9998813569</strong></a><a class="back" href="/">Back to event</a></div></div></header>
+    <header class="topbar"><div class="nav"><div class="nav-side"><a class="enquire" href="tel:+919998813569"><span>Enquire</span><strong>+91 9998813569</strong></a><a class="back" href="/">Back to event</a></div></div></header>
     <main>
       <section class="confirmation" aria-labelledby="confirmationTitle">
         <div class="check" aria-hidden="true">✓</div>

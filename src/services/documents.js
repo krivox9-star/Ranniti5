@@ -10,20 +10,6 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const outputDir = process.env.VERCEL || process.env.NETLIFY
   ? path.join('/tmp', 'ranniti5-generated')
   : path.join(root, 'data', 'generated');
-const logoUrl = 'https://ranniti5.bnikutch.com/__l5e/assets-v1/76b9250f-a5af-4bcb-89fa-e47c73ba89c5/ranniti-5-logo.png';
-let logoBuffer;
-
-const getLogo = async () => {
-  if (logoBuffer) return logoBuffer;
-  try {
-    const response = await fetch(logoUrl);
-    if (response.ok) logoBuffer = Buffer.from(await response.arrayBuffer());
-  } catch {
-    // The PDF remains usable with the text fallback when the logo host is unavailable.
-  }
-  return logoBuffer;
-};
-
 const pdfBuffer = (draw) => new Promise((resolve, reject) => {
   const doc = new PDFDocument({ size: 'A4', margin: 52 });
   const chunks = [];
@@ -50,17 +36,8 @@ export const createArtifacts = async (registration, payment) => {
   const invoiceNumber = existing?.invoice_number || `RN5-INV-${String(await nextSequence('invoice')).padStart(3, '0')}`;
   const passNumber = existingPass?.pass_number || `RN5-${String(await nextSequence('entry_pass')).padStart(3, '0')}`;
   const qrToken = existingPass?.qr_token || `RANNITI5:${registration.id}:${uuidv4()}`;
-  const logo = await getLogo();
   const eventDate = '18–20 December 2026';
   const eventVenue = 'Dhordo, Kutch';
-  const drawBrand = (doc, title, number) => {
-    doc.save().rect(0, 0, 595, 116).fill('#151515').restore();
-    if (logo) doc.image(logo, 48, 28, { fit: [128, 54] });
-    else doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(25).text('RANNITI 5', 48, 39);
-    doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(18).text(title, 350, 37, { width: 197, align: 'right' });
-    doc.fillColor('#e8e1dc').font('Helvetica').fontSize(9).text(number, 350, 66, { width: 197, align: 'right' });
-    doc.fillColor('#d71920').rect(0, 112, 595, 4).fill();
-  };
   const drawFooter = (doc) => {
     doc.fillColor('#77736f').font('Helvetica').fontSize(8).text('RANNITI 5 Strategy Summit  |  BNI Kutch  |  Dhordo, Kutch', 48, 776, { width: 499, align: 'center' });
   };
@@ -74,8 +51,6 @@ export const createArtifacts = async (registration, payment) => {
     doc.rect(0, 0, 595, 841).fill('#ffffff');
     doc.save().path('M 395 0 L 595 0 L 595 154 L 438 114 Z').fill('#b50813').restore();
     doc.save().path('M 365 0 L 595 0 L 595 132 L 420 93 Z').fill('#e11925').restore();
-    if (logo) doc.image(logo, 48, 36, { fit: [215, 82] });
-    else doc.fillColor('#d71920').font('Helvetica-Bold').fontSize(35).text('RANNITI 5', 48, 55);
     doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(9).text('BIGGER NETWORKS', 466, 40, { width: 100, align: 'left' });
     doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(9).text('STRONGER BUSINESS', 466, 56, { width: 110, align: 'left' });
     doc.fillColor('#151c2b').font('Helvetica-Bold').fontSize(31).text('INVOICE', 76, 172);
@@ -118,8 +93,6 @@ export const createArtifacts = async (registration, payment) => {
     doc.rect(0, 0, 595, 841).fill('#ffffff');
     doc.save().path('M 385 0 L 595 0 L 595 158 L 438 113 Z').fill('#b50813').restore();
     doc.save().path('M 355 0 L 595 0 L 595 137 L 418 94 Z').fill('#e11925').restore();
-    if (logo) doc.image(logo, 48, 37, { fit: [215, 82] });
-    else doc.fillColor('#d71920').font('Helvetica-Bold').fontSize(35).text('RANNITI 5', 48, 55);
     doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(9).text('BIGGER NETWORKS', 466, 42, { width: 100 });
     doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(9).text('STRONGER BUSINESS', 466, 58, { width: 110 });
     doc.fillColor('#d71920').roundedRect(30, 172, 535, 67, 12).fill();
