@@ -32,8 +32,9 @@ router.post('/registrations', async (req, res) => {
   }
   const id = `RN5-REG-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
   const now = new Date().toISOString();
+  const savedAttendeeNames = attendeeNames.length ? attendeeNames : [name];
   const guestName = body.guestName || attendeeNames.slice(1).join(', ');
-  await (await collection('registrations')).insertOne({ id, full_name: name, email, mobile: body.mobile || '', company: body.company || '', guest_name: guestName, attendee_names: attendeeNames, region: body.region || '', chapter: body.chapter || '', gst_number: String(body.gstNumber || '').toUpperCase(), city: body.city || '', date_of_birth: body.dateOfBirth || '', hoodie_size: body.hoodieSize || '', business_intent: body.businessIntent || '', package_name: packageName, amount, status: 'Pending', created_at: now, updated_at: now });
+  await (await collection('registrations')).insertOne({ id, full_name: name, email, mobile: body.mobile || '', company: body.company || '', guest_name: guestName, attendee_names: savedAttendeeNames, region: body.region || '', chapter: body.chapter || '', gst_number: String(body.gstNumber || '').toUpperCase(), city: body.city || '', date_of_birth: body.dateOfBirth || '', hoodie_size: body.hoodieSize || '', business_intent: body.businessIntent || '', package_name: packageName, amount, status: 'Pending', created_at: now, updated_at: now });
   const users = await collection('users');
   const adminEmail = String(process.env.ADMIN_EMAIL || '').trim().toLowerCase();
   const role = adminEmail && email === adminEmail ? 'admin' : 'user';

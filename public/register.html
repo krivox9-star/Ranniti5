@@ -216,8 +216,8 @@
       const paymentQr = document.getElementById('paymentQr');
       const paymentAmount = document.getElementById('paymentAmount');
       const packagePeople = {
-        'Triple Occupancy': ['Name 1', 'Name 2', 'Name 3'],
-        'Double Occupancy': ['Name 1', 'Name 2'],
+        'Triple Occupancy': [],
+        'Double Occupancy': [],
         '1 Member + 1 Spouse + 1 Kid (Up to 5 years)': ['Member name', 'Spouse name', 'Kid name (up to 5 years)'],
         '1 Member + 1 Spouse + 1 Kid (Above 5 years)': ['Member name', 'Spouse name', 'Kid name (above 5 years)']
       };
@@ -229,10 +229,18 @@
       function renderAttendees() {
         const labels = packagePeople[packageSelect.value] || ['Name 1'];
         const saved = [...document.querySelectorAll('[data-attendee]')].map((input) => input.value);
+        const attendeeBlock = document.getElementById('attendeeBlock');
+        const attendeeGrid = document.getElementById('attendeeGrid');
+        if (!labels.length) {
+          attendeeBlock.hidden = true;
+          attendeeGrid.replaceChildren();
+          return;
+        }
+        attendeeBlock.hidden = false;
         const fullName = document.getElementById('fullName').value.trim();
         if (!saved[0] && fullName) saved[0] = fullName;
         document.getElementById('attendeeRule').textContent = `This package requires ${labels.length} names. Fill in every blank.`;
-        document.getElementById('attendeeGrid').innerHTML = labels.map((label, index) => `
+        attendeeGrid.innerHTML = labels.map((label, index) => `
           <div class="field">
             <label for="attendee${index + 1}">${escapeAttr(label)}</label>
             <input id="attendee${index + 1}" name="attendee${index + 1}" data-attendee required autocomplete="name" value="${escapeAttr(saved[index] || '')}" />
