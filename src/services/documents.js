@@ -43,7 +43,21 @@ export const createArtifacts = async (registration, payment) => {
   };
   const drawField = (doc, label, value, x, y, width) => {
     doc.fillColor('#77736f').font('Helvetica-Bold').fontSize(8).text(label.toUpperCase(), x, y, { width });
-    doc.fillColor('#151515').font('Helvetica').fontSize(11).text(String(value || '—'), x, y + 13, { width });
+    drawFitText(doc, value || '-', x, y + 13, width, { color: '#151515', fontSize: 11, minFontSize: 8, ellipsis: true });
+  };
+  const drawFitText = (doc, value, x, y, width, { color = '#151515', font = 'Helvetica', fontSize = 11, minFontSize = 8, align = 'left', ellipsis = true } = {}) => {
+    let text = String(value || '-');
+    let size = fontSize;
+    doc.font(font);
+    while (size > minFontSize && doc.widthOfString(text, { size }) > width) size -= 0.5;
+    if (doc.widthOfString(text, { size }) > width && ellipsis) {
+      while (text.length > 1 && doc.widthOfString(`${text}...`, { size }) > width) text = text.slice(0, -1).trimEnd();
+      text = `${text}...`;
+    }
+    doc.fillColor(color).font(font).fontSize(size).text(text, x, y, { width, lineBreak: false, align, ellipsis: ellipsis && false });
+  };
+  const drawHeaderText = (doc, text, x, y, width) => {
+    doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(8).text(text, x, y, { width, align: 'left' });
   };
   const invoicePath = await writePdf(`${invoiceNumber}.pdf`, (doc) => {
     const amount = `INR ${Number(registration.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
@@ -51,8 +65,8 @@ export const createArtifacts = async (registration, payment) => {
     doc.rect(0, 0, 595, 841).fill('#ffffff');
     doc.save().path('M 395 0 L 595 0 L 595 154 L 438 114 Z').fill('#b50813').restore();
     doc.save().path('M 365 0 L 595 0 L 595 132 L 420 93 Z').fill('#e11925').restore();
-    doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(9).text('BIGGER NETWORKS', 466, 40, { width: 100, align: 'left' });
-    doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(9).text('STRONGER BUSINESS', 466, 56, { width: 110, align: 'left' });
+    drawHeaderText(doc, 'BIGGER NETWORKS', 450, 40, 120);
+    drawHeaderText(doc, 'STRONGER BUSINESS', 450, 56, 120);
     doc.fillColor('#151c2b').font('Helvetica-Bold').fontSize(31).text('INVOICE', 76, 172);
     doc.fillColor('#38465c').font('Helvetica').fontSize(11).text('RANNITI 5  ·  EVENT REGISTRATION', 77, 211);
     doc.fillColor('#d71920').rect(48, 246, 499, 2).fill();
@@ -60,14 +74,14 @@ export const createArtifacts = async (registration, payment) => {
     doc.fillColor('#d0d5dd').rect(212, 269, 1, 46).fill();
     drawField(doc, 'Date', invoiceDate, 236, 274, 240);
     doc.fillColor('#16a05d').roundedRect(454, 270, 93, 31, 16).fill();
-    doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(10).text('✓  PAID', 454, 280, { width: 93, align: 'center' });
+    doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(10).text('PAID', 454, 280, { width: 93, align: 'center' });
     doc.fillColor('#f4f5f8').roundedRect(48, 344, 499, 112, 7).fill();
     doc.fillColor('#d71920').circle(83, 400, 24).fill();
     doc.fillColor('#ffffff').circle(83, 392, 8).fill().roundedRect(72, 402, 22, 14, 7).fill();
     doc.fillColor('#68758a').font('Helvetica').fontSize(10).text('Billed to', 123, 369);
-    doc.fillColor('#1d2a40').font('Helvetica-Bold').fontSize(15).text(registration.full_name, 123, 389);
-    doc.fillColor('#38465c').font('Helvetica').fontSize(10).text(`✉  ${registration.email}`, 123, 414);
-    doc.text(`☎  ${registration.mobile || '—'}`, 123, 433);
+    drawFitText(doc, registration.full_name, 123, 389, 408, { color: '#1d2a40', font: 'Helvetica-Bold', fontSize: 15, minFontSize: 10 });
+    drawFitText(doc, `Email: ${registration.email}`, 123, 414, 408, { color: '#38465c', fontSize: 10, minFontSize: 8 });
+    drawFitText(doc, `Phone: ${registration.mobile || '-'}`, 123, 433, 408, { color: '#38465c', fontSize: 10, minFontSize: 8 });
     drawField(doc, 'Registration ID', registration.id, 48, 488, 235);
     drawField(doc, 'Transaction ID', payment.transaction_id || 'Manual confirmation', 310, 488, 237);
     doc.fillColor('#d71920').rect(48, 548, 499, 35).fill();
@@ -82,35 +96,33 @@ export const createArtifacts = async (registration, payment) => {
     doc.fillColor('#68758a').font('Helvetica').fontSize(10).text('Amount paid', 123, 684);
     doc.fillColor('#d71920').font('Helvetica-Bold').fontSize(21).text(amount, 123, 700);
     doc.fillColor('#16a05d').roundedRect(403, 681, 113, 36, 18).fill();
-    doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(12).text('✓  PAID', 403, 693, { width: 113, align: 'center' });
-    doc.fillColor('#d71920').font('Helvetica-Oblique').fontSize(22).text('Thank You!', 48, 710);
-    doc.fillColor('#38465c').font('Helvetica').fontSize(9).text('We are excited to have you join RANNITI 5.', 48, 742);
-    doc.text('Your participation makes this journey stronger!', 48, 756);
-    doc.save().rect(0, 775, 595, 66).fill('#151c2b').restore();
+    doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(12).text('PAID', 403, 693, { width: 113, align: 'center' });
+    doc.fillColor('#d71920').font('Helvetica-Oblique').fontSize(18).text('Thank You!', 48, 746);
+    doc.save().rect(0, 790, 595, 51).fill('#151c2b').restore();
+    drawFitText(doc, 'RANNITI 5 Strategy Summit  |  BNI Kutch  |  Dhordo, Kutch', 48, 811, 499, { color: '#ffffff', fontSize: 8, minFontSize: 7, align: 'center' });
   });
   const qrData = await QRCode.toDataURL(qrToken, { margin: 1, width: 220 });
   const entryPassPath = await writePdf(`${passNumber}.pdf`, (doc) => {
     doc.rect(0, 0, 595, 841).fill('#ffffff');
     doc.save().path('M 385 0 L 595 0 L 595 158 L 438 113 Z').fill('#b50813').restore();
     doc.save().path('M 355 0 L 595 0 L 595 137 L 418 94 Z').fill('#e11925').restore();
-    doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(9).text('BIGGER NETWORKS', 466, 42, { width: 100 });
-    doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(9).text('STRONGER BUSINESS', 466, 58, { width: 110 });
+    drawHeaderText(doc, 'BIGGER NETWORKS', 450, 42, 120);
+    drawHeaderText(doc, 'STRONGER BUSINESS', 450, 58, 120);
     doc.fillColor('#d71920').roundedRect(30, 172, 535, 67, 12).fill();
-    doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(27).text('DIGITAL ENTRY PASS', 138, 191, { width: 400, align: 'center' });
-    doc.fillColor('#ffffff').lineWidth(2).moveTo(120, 184).lineTo(120, 226).stroke();
-    doc.fillColor('#38465c').font('Helvetica').fontSize(17).text('R A N N I T I   5   S T R A T E G Y   S U M M I T', 32, 258, { width: 531, align: 'center' });
+    drawFitText(doc, 'DIGITAL ENTRY PASS', 50, 191, 495, { color: '#ffffff', font: 'Helvetica-Bold', fontSize: 27, minFontSize: 18, align: 'center' });
+    doc.fillColor('#38465c').font('Helvetica').fontSize(17).text('RANNITI 5 STRATEGY SUMMIT', 32, 258, { width: 531, align: 'center', characterSpacing: 2 });
     doc.fillColor('#d71920').rect(32, 289, 531, 2).fill();
-    doc.fillColor('#151c2b').font('Helvetica-Bold').fontSize(31).text(registration.full_name, 42, 316, { width: 510 });
-    doc.fillColor('#38465c').font('Helvetica').fontSize(15).text(registration.company || registration.chapter || 'RANNITI 5 Delegate', 42, 359);
+    drawFitText(doc, registration.full_name, 42, 316, 510, { color: '#151c2b', font: 'Helvetica-Bold', fontSize: 31, minFontSize: 16 });
+    drawFitText(doc, registration.company || registration.chapter || 'RANNITI 5 Delegate', 42, 359, 510, { color: '#38465c', fontSize: 15, minFontSize: 10 });
     doc.fillColor('#d71920').lineWidth(1).moveTo(298, 404).lineTo(298, 515).stroke();
     doc.fillColor('#d71920').circle(66, 423, 20).fill();
     doc.fillColor('#ffffff').circle(66, 417, 6).fill().roundedRect(57, 427, 18, 11, 6).fill();
     drawField(doc, 'Registration ID', registration.id, 96, 402, 180);
     doc.fillColor('#d71920').roundedRect(46, 474, 40, 40, 8).stroke();
-    doc.fillColor('#d71920').font('Helvetica-Bold').fontSize(20).text('↔', 56, 483);
+    doc.fillColor('#d71920').font('Helvetica-Bold').fontSize(11).text('ID', 46, 489, { width: 40, align: 'center' });
     drawField(doc, 'Entry pass', passNumber, 96, 474, 180);
     doc.fillColor('#d71920').roundedRect(322, 403, 40, 40, 8).stroke();
-    doc.fillColor('#d71920').font('Helvetica-Bold').fontSize(20).text('▣', 332, 412);
+    doc.fillColor('#d71920').font('Helvetica-Bold').fontSize(11).text('EV', 322, 418, { width: 40, align: 'center' });
     drawField(doc, 'Event', 'RANNITI 5 Strategy Summit', 374, 402, 190);
     drawField(doc, 'Dates', eventDate, 374, 445, 190);
     drawField(doc, 'Venue', eventVenue, 374, 480, 190);
