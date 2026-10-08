@@ -2,10 +2,10 @@
   const packagePrices = {
     'Triple Occupancy': 17698.82,
     'Double Occupancy': 20648.82,
-    '1 Member + 1 Spouse + 1 Kid (Up to 5 years)': 29999,
-    '1 Member + 1 Family Member + 1 Kid (Up to 5 years)': 29999,
-    '1 Member + 1 Spouse + 1 Kid (Above 5 years)': 34999,
-    '1 Member + 1 Family Member + 1 Kid (Above 5 years)': 34999,
+    '1 Member + 1 Spouse + 1 Kid (Up to 5 years)': 30090,
+    '1 Member + 1 Family Member + 1 Kid (Up to 5 years)': 30090,
+    '1 Member + 1 Spouse + 1 Kid (Above 5 years)': 34810,
+    '1 Member + 1 Family Member + 1 Kid (Above 5 years)': 34810,
   };
   const canonicalPaymentStatus = (registration) => {
     const status = registration.payment_status || registration.paymentStatus || registration.payment?.status || 'Pending';

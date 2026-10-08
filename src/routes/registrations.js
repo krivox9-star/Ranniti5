@@ -49,10 +49,10 @@ const decryptDocument = (document) => {
 const packages = {
   'Triple Occupancy': 17698.82,
   'Double Occupancy': 20648.82,
-  '1 Member + 1 Spouse + 1 Kid (Up to 5 years)': 29999,
-  '1 Member + 1 Family Member + 1 Kid (Up to 5 years)': 29999,
-  '1 Member + 1 Spouse + 1 Kid (Above 5 years)': 34999,
-  '1 Member + 1 Family Member + 1 Kid (Above 5 years)': 34999,
+  '1 Member + 1 Spouse + 1 Kid (Up to 5 years)': 30090,
+  '1 Member + 1 Family Member + 1 Kid (Up to 5 years)': 30090,
+  '1 Member + 1 Spouse + 1 Kid (Above 5 years)': 34810,
+  '1 Member + 1 Family Member + 1 Kid (Above 5 years)': 34810,
 };
 const publicRegistration = (r) => { const { confirmation_token_hash, ...safeRegistration } = r; return { ...safeRegistration, registrationId: r.id, package: r.package_name, paymentStatus: r.payment_status, transactionId: r.transaction_id, paymentDate: r.payment_date, entryPassNumber: r.pass_number, invoiceNumber: r.invoice_number }; };
 

@@ -70,7 +70,7 @@
       </section>
     </main>
     <script>
-      const packages = { 'Triple Occupancy':17698.82, 'Double Occupancy':20648.82, '1 Member + 1 Spouse + 1 Kid (Up to 5 years)':29999, '1 Member + 1 Spouse + 1 Kid (Above 5 years)':34999 };
+      const packages = { 'Triple Occupancy':17698.82, 'Double Occupancy':20648.82, '1 Member + 1 Spouse + 1 Kid (Up to 5 years)':30090, '1 Member + 1 Spouse + 1 Kid (Above 5 years)':34810 };
       const legacyPackages = { '1 Member + 1 Family Member + 1 Kid (Up to 5 years)':'1 Member + 1 Spouse + 1 Kid (Up to 5 years)', '1 Member + 1 Family Member + 1 Kid (Above 5 years)':'1 Member + 1 Spouse + 1 Kid (Above 5 years)' };
       const queryPackage = legacyPackages[new URLSearchParams(window.location.search).get('package')] || new URLSearchParams(window.location.search).get('package');
       const packageName = packages[queryPackage] ? queryPackage : 'Triple Occupancy';

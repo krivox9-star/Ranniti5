@@ -150,8 +150,8 @@
               <select id="packageSelect" name="package" required>
                 <option value="Triple Occupancy">Triple Occupancy — ₹17,698.82 incl. GST</option>
                 <option value="Double Occupancy">Double Occupancy — ₹20,648.82 incl. GST</option>
-                <option value="1 Member + 1 Spouse + 1 Kid (Up to 5 years)">Member + Spouse + Kid up to 5 years — ₹29,999.00 incl. GST</option>
-                <option value="1 Member + 1 Spouse + 1 Kid (Above 5 years)">Member + Spouse + Kid above 5 years — ₹34,999.00 incl. GST</option>
+                <option value="1 Member + 1 Spouse + 1 Kid (Up to 5 years)">Member + Spouse + Kid up to 5 years — ₹25,500 + 18% GST (₹30,090 total)</option>
+                <option value="1 Member + 1 Spouse + 1 Kid (Above 5 years)">Member + Spouse + Kid above 5 years — ₹29,500 + 18% GST (₹34,810 total)</option>
               </select>
               <div class="attendee-block" id="attendeeBlock">
                 <p class="attendee-rule" id="attendeeRule"></p>
@@ -218,8 +218,8 @@
       const packages = {
         'Triple Occupancy': 17698.82,
         'Double Occupancy': 20648.82,
-        '1 Member + 1 Spouse + 1 Kid (Up to 5 years)': 29999,
-        '1 Member + 1 Spouse + 1 Kid (Above 5 years)': 34999
+        '1 Member + 1 Spouse + 1 Kid (Up to 5 years)': 30090,
+        '1 Member + 1 Spouse + 1 Kid (Above 5 years)': 34810
       };
       const formatMoney = (value) => Number(value).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       const packageSelect = document.getElementById('packageSelect');
