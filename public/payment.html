@@ -46,6 +46,10 @@
       .bank strong { color:var(--text); }
       .fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; margin-top:28px; }
       .field { display:flex; flex-direction:column; gap:7px; }
+      .file-control { display:flex; align-items:center; gap:12px; flex-wrap:wrap; color:var(--muted); font-size:.9rem; }
+      .file-control input { flex:1 1 220px; }
+      .file-name { color:var(--accent-2); overflow-wrap:anywhere; }
+      .remove-file { border:0; padding:0; color:var(--accent-2); background:none; font:inherit; font-weight:700; cursor:pointer; }
       label { color:var(--muted); font-size:.85rem; font-weight:600; }
       input { width:100%; padding:13px 14px; border:1px solid rgba(255,255,255,.12); border-radius:10px; outline:0; background:rgba(0,0,0,.22); color:var(--text); font:inherit; }
       input:focus { border-color:var(--accent-2); box-shadow:0 0 0 3px rgba(247,165,92,.12); }
@@ -62,7 +66,7 @@
         <div class="selected"><small>Selected package · Total including 18% GST</small><h2 id="packageName">Triple Occupancy</h2><div class="amount" id="paymentAmount">₹17,698.82</div></div>
         <div class="payment-grid"><div class="qr"><img id="paymentQr" alt="UPI payment QR code" /></div><div class="copy"><p>Scan this QR code with any UPI app or pay directly to:</p><span class="upi">munjalshah9@okicici</span><p>After payment, enter your UTR ID and attach a screenshot or receipt as proof.</p></div></div>
         <div class="bank"><h3>Bank details</h3><p><strong>Imperial Innoventures</strong><br />Account No.: <strong>0114137470</strong><br />Kotak Mahindra Bank<br />Gandhidham Branch<br />IFSC: <strong>KKBK0000822</strong><br />GST NUMBER: <strong>24ADSPV9796P1ZW</strong></p></div>
-        <form id="paymentForm"><div class="fields"><div class="field"><label for="utrId">UTR ID</label><input id="utrId" name="utrId" required placeholder="Enter your UTR / transaction ID" /></div><div class="field"><label for="paymentProof">Payment proof</label><input id="paymentProof" name="paymentProof" type="file" accept="image/*,.pdf" required /></div></div><button class="button" type="submit">Submit Payment Details</button><div class="success" id="paymentSuccess" role="status">Payment details submitted successfully. Your payment is pending verification.</div></form>
+        <form id="paymentForm"><div class="fields"><div class="field"><label for="utrId">UTR ID</label><input id="utrId" name="transactionId" required placeholder="Enter your UTR / transaction ID" /></div><div class="field"><label for="paymentProof">Upload Payment Proof</label><div class="file-control"><input id="paymentProof" name="paymentProof" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" required /><span class="file-name" id="paymentFileName">PDF, JPG, JPEG or PNG · Max 5 MB</span><button class="remove-file" id="removePaymentProof" type="button" hidden>Remove</button></div></div></div><button class="button" type="submit">Submit Payment Details</button><div class="success" id="paymentSuccess" role="status">Payment details submitted successfully. Your payment is pending verification.</div></form>
       </section>
     </main>
     <script>
@@ -74,15 +78,45 @@
       document.getElementById('packageName').textContent = packageName;
       document.getElementById('paymentAmount').textContent = '₹' + amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       document.getElementById('paymentQr').src = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + encodeURIComponent(`upi://pay?pa=munjalshah9@okicici&pn=Imperial%20Innoventures&am=${amount}&cu=INR`);
+      const paymentProofInput = document.getElementById('paymentProof');
+      paymentProofInput.addEventListener('change', () => {
+        const file = paymentProofInput.files[0];
+        if (!file) return;
+        const validType = /\.(pdf|jpe?g|png)$/i.test(file.name);
+        if (!validType || file.size > 5 * 1024 * 1024) {
+          paymentProofInput.value = '';
+          document.getElementById('paymentFileName').textContent = 'PDF, JPG, JPEG or PNG · Max 5 MB';
+          document.getElementById('removePaymentProof').hidden = true;
+          const message = document.getElementById('paymentSuccess');
+          message.textContent = !validType ? 'Choose a PDF, JPG, JPEG or PNG file.' : 'The payment proof must be 5 MB or smaller.';
+          message.style.display = 'block';
+          return;
+        }
+        document.getElementById('paymentFileName').textContent = file.name;
+        document.getElementById('removePaymentProof').hidden = false;
+      });
+      document.getElementById('removePaymentProof').addEventListener('click', () => {
+        paymentProofInput.value = '';
+        document.getElementById('paymentFileName').textContent = 'PDF, JPG, JPEG or PNG · Max 5 MB';
+        document.getElementById('removePaymentProof').hidden = true;
+      });
       document.getElementById('paymentForm').addEventListener('submit', async (event) => {
         event.preventDefault();
         const registrationId = new URLSearchParams(window.location.search).get('registrationId');
-        const transactionId = document.getElementById('utrId').value.trim();
-        const response = await fetch('/api/payments/manual', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ registrationId, transactionId }) });
-        const body = await response.json();
-        if (!response.ok) { document.getElementById('paymentSuccess').textContent = body.message || 'Payment submission failed'; return; }
-        document.getElementById('paymentSuccess').style.display = 'block';
-        window.setTimeout(() => { window.location.href = '/confirmation?registrationId=' + encodeURIComponent(registrationId); }, 600);
+        const message = document.getElementById('paymentSuccess');
+        try {
+          const data = new FormData(event.currentTarget);
+          data.append('registrationId', registrationId || '');
+          const response = await fetch('/api/payments/manual', { method: 'POST', headers: { 'X-Registration-Token': sessionStorage.getItem('ranniti_registration_token') || '' }, body: data });
+          const body = await response.json();
+          if (!response.ok) throw new Error(body.message || 'Payment submission failed');
+          message.textContent = 'Payment details submitted successfully. Your payment is pending verification.';
+          message.style.display = 'block';
+          window.setTimeout(() => { window.location.href = '/confirmation?registrationId=' + encodeURIComponent(registrationId); }, 600);
+        } catch (error) {
+          message.textContent = error.message;
+          message.style.display = 'block';
+        }
       });
     </script>
   </body>

@@ -41,11 +41,27 @@
       <section class="confirmation" aria-labelledby="confirmationTitle">
         <div class="check" aria-hidden="true">✓</div>
         <span class="kicker">Registration received</span>
-        <h1 id="confirmationTitle">Thank You for Registering</h1>
-        <p class="message">Thank you for registering for <strong>RANNITI 5</strong>. We will send the invoice and entry pass to your registered email address within <strong>24 hours</strong>.</p>
-        <div class="details">Please keep your payment reference available until your registration is verified.</div>
+        <h1 id="confirmationTitle">Registration Successful</h1>
+        <p class="message" id="confirmationMessage">Your RANNITI 5 registration has been received.</p>
+        <div class="details" id="confirmationDetails">Loading registration details…</div>
         <a class="button" href="/">Return to event</a>
       </section>
     </main>
+  <script>
+    const escapeText = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
+    const registrationId = new URLSearchParams(window.location.search).get('registrationId');
+    if (registrationId) {
+      fetch('/api/registrations/' + encodeURIComponent(registrationId) + '/confirmation', { headers: { 'X-Registration-Token': sessionStorage.getItem('ranniti_registration_token') || '' } })
+        .then(async (response) => { const body = await response.json(); if (!response.ok) throw new Error(body.message || 'Registration not found'); return body.registration; })
+        .then((registration) => {
+          const total = Number(registration.total_amount ?? registration.amount ?? 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR' });
+          document.getElementById('confirmationMessage').innerHTML = `Thank you, <strong>${escapeText(registration.full_name)}</strong>. Your registration has been received.`;
+          document.getElementById('confirmationDetails').innerHTML = `<strong>Registration ID:</strong> ${escapeText(registration.id)}<br><strong>Member:</strong> ${escapeText(registration.full_name)}<br><strong>Package:</strong> ${escapeText(registration.package_name)}<br><strong>Total amount:</strong> ${escapeText(total)}<br><strong>Payment status:</strong> ${escapeText(registration.payment_status || 'Pending')}`;
+        })
+        .catch((error) => { document.getElementById('confirmationDetails').textContent = error.message; });
+    } else {
+      document.getElementById('confirmationDetails').textContent = 'Please keep your payment reference available until your registration is verified.';
+    }
+  </script>
   </body>
 </html>

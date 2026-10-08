@@ -63,6 +63,10 @@
       .field { display: flex; flex-direction: column; gap: 7px; }
       .field.full { grid-column: 1 / -1; }
       .attendee-block { margin-top: 16px; padding: 16px; border: 1px solid rgba(247,165,92,.28); border-radius: 14px; background: rgba(247,165,92,.06); }
+      .file-control { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; color: var(--muted); font-size: .9rem; }
+      .file-control input { flex: 1 1 220px; }
+      .file-name { color: var(--accent-2); overflow-wrap: anywhere; }
+      .remove-file { border: 0; padding: 0; color: var(--accent-2); background: none; font: inherit; font-weight: 700; cursor: pointer; }
       .attendee-rule { margin: 0 0 14px; color: var(--accent-2); font-size: .92rem; line-height: 1.5; }
       label { color: var(--muted); font-size: .85rem; font-weight: 600; }
       input, select, textarea { width: 100%; padding: 13px 14px; border: 1px solid rgba(255,255,255,.12); border-radius: 10px; outline: 0; background: rgba(0,0,0,.22); color: var(--text); font: inherit; text-transform: uppercase; }
@@ -153,7 +157,17 @@
                 <p class="attendee-rule" id="attendeeRule"></p>
                 <div class="grid" id="attendeeGrid"></div>
               </div>
+              <div class="attendee-block" id="stayPartnerBlock" hidden>
+                <p class="attendee-rule" id="stayPartnerRule"></p>
+                <div class="grid" id="stayPartnerGrid"></div>
+              </div>
             </div>
+          </div>
+
+          <div class="section-title">Identity Document</div>
+          <div class="field full">
+            <label for="aadhaarCard">Upload Aadhaar Card</label>
+            <div class="file-control"><input id="aadhaarCard" name="aadhaarCard" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" required /><span class="file-name" id="aadhaarFileName">PDF, JPG, JPEG or PNG · Max 5 MB</span><button class="remove-file" id="removeAadhaar" type="button" hidden>Remove</button></div>
           </div>
 
           <div class="consents">
@@ -221,6 +235,8 @@
         '1 Member + 1 Spouse + 1 Kid (Up to 5 years)': ['Member name', 'Spouse name', 'Kid name (up to 5 years)'],
         '1 Member + 1 Spouse + 1 Kid (Above 5 years)': ['Member name', 'Spouse name', 'Kid name (above 5 years)']
       };
+      let registrationId = '';
+      const stayPartnerValues = ['', ''];
 
       function escapeAttr(value) {
         return String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
@@ -248,6 +264,18 @@
         `).join('');
       }
 
+      function renderStayPartners() {
+        const packageName = packageSelect.value;
+        const labels = packageName === 'Triple Occupancy'
+          ? ['Preferred Stay Partner 1 Full Name', 'Preferred Stay Partner 2 Full Name']
+          : packageName === 'Double Occupancy' ? ['Preferred Stay Partner Full Name'] : [];
+        const block = document.getElementById('stayPartnerBlock');
+        const grid = document.getElementById('stayPartnerGrid');
+        block.hidden = !labels.length;
+        grid.innerHTML = labels.map((label, index) => `<div class="field"><label for="stayPartner${index + 1}">${label}</label><input id="stayPartner${index + 1}" name="stayPartner${index + 1}" data-stay-partner="${index}" required autocomplete="name" value="${escapeAttr(stayPartnerValues[index])}" /></div>`).join('');
+        if (labels.length) document.getElementById('stayPartnerRule').textContent = 'Enter the full name of every preferred stay partner.';
+      }
+
       function updateSummary() {
         const packageName = packageSelect.value;
         summaryPackage.textContent = packageName;
@@ -256,6 +284,7 @@
         paymentAmount.textContent = '₹' + formatMoney(total);
         paymentQr.src = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + encodeURIComponent(`upi://pay?pa=munjalshah9@okicici&pn=Imperial%20Innoventures&am=${total}&cu=INR`);
         renderAttendees();
+        renderStayPartners();
       }
 
       const legacyPackages = {
@@ -273,6 +302,9 @@
       document.getElementById('attendeeGrid').addEventListener('input', (event) => {
         if (event.target.matches('[data-attendee]')) event.target.dataset.edited = '1';
       });
+      document.getElementById('stayPartnerGrid').addEventListener('input', (event) => {
+        if (event.target.matches('[data-stay-partner]')) stayPartnerValues[Number(event.target.dataset.stayPartner)] = event.target.value;
+      });
       const gstNumberInput = document.getElementById('gstNumber');
       if (gstNumberInput) {
         gstNumberInput.addEventListener('input', () => {
@@ -281,13 +313,41 @@
       }
 
       fetch('/api/health').then((response) => response.json()).then((body) => { if (body.database && body.database !== 'connected' && body.message) { const note = document.getElementById('formSuccess'); note.textContent = body.message; note.style.display = 'block'; } }).catch(() => {});
-      document.getElementById('registrationForm').addEventListener('submit', (event) => {
+      const aadhaarInput = document.getElementById('aadhaarCard');
+      aadhaarInput.addEventListener('change', () => {
+        const file = aadhaarInput.files[0];
+        if (!file) return;
+        const allowed = /\.(pdf|jpe?g|png)$/i.test(file.name);
+        if (!allowed || file.size > 5 * 1024 * 1024) {
+          aadhaarInput.value = '';
+          document.getElementById('aadhaarFileName').textContent = 'PDF, JPG, JPEG or PNG · Max 5 MB';
+          document.getElementById('removeAadhaar').hidden = true;
+          document.getElementById('formSuccess').textContent = !allowed ? 'Choose a PDF, JPG, JPEG or PNG file.' : 'The Aadhaar file must be 5 MB or smaller.';
+          document.getElementById('formSuccess').style.display = 'block';
+          return;
+        }
+        document.getElementById('aadhaarFileName').textContent = file.name;
+        document.getElementById('removeAadhaar').hidden = false;
+      });
+      document.getElementById('removeAadhaar').addEventListener('click', () => {
+        aadhaarInput.value = '';
+        document.getElementById('aadhaarFileName').textContent = 'PDF, JPG, JPEG or PNG · Max 5 MB';
+        document.getElementById('removeAadhaar').hidden = true;
+      });
+      document.getElementById('registrationForm').addEventListener('submit', async (event) => {
         event.preventDefault();
-        const data = Object.fromEntries(new FormData(event.currentTarget).entries());
-        fetch('/api/registrations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
-          .then(async (response) => { const raw = await response.text(); let body = {}; try { body = raw ? JSON.parse(raw) : {}; } catch { body = { message: raw.slice(0, 180) || 'Server error' }; } return { response, body }; })
-          .then(({ response, body }) => { if (!response.ok) throw new Error(body.message || 'Unable to create registration'); window.location.href = '/payment?registrationId=' + encodeURIComponent(body.registration.id) + '&package=' + encodeURIComponent(packageSelect.value); })
-          .catch((error) => { document.getElementById('formSuccess').textContent = error.message; document.getElementById('formSuccess').style.display = 'block'; });
+        const formSuccess = document.getElementById('formSuccess');
+        try {
+          const response = await fetch('/api/registrations', { method: 'POST', body: new FormData(event.currentTarget) });
+          const body = await response.json();
+          if (!response.ok) throw new Error(body.message || 'Unable to create registration');
+          registrationId = body.registration.id;
+          sessionStorage.setItem('ranniti_registration_token', body.registration.confirmationToken);
+          window.location.href = '/payment?registrationId=' + encodeURIComponent(registrationId) + '&package=' + encodeURIComponent(packageSelect.value);
+        } catch (error) {
+          formSuccess.textContent = error.message;
+          formSuccess.style.display = 'block';
+        }
       });
       document.getElementById('paymentForm').addEventListener('submit', (event) => {
         event.preventDefault();

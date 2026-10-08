@@ -1,8 +1,8 @@
 ## Payment and entry workflow
 
-The application stores registrations, payments, invoices, entry passes, email logs, and check-ins in MongoDB. Admins authenticate through JWT and confirm payments from `/admin`.
+The application stores registrations, encrypted identity/payment documents, payments, invoices, entry passes, email logs, and check-ins in MongoDB. Admins authenticate through JWT and manage registrations from `/admin`. Aadhaar and payment-proof documents are AES-GCM encrypted in MongoDB and are served only by admin-authenticated endpoints.
 
-Copy `.env.example` to `.env` and configure `MONGODB_URI` and `MONGODB_DB`. Set `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` for real Razorpay checkout orders. Set `BREVO_API_KEY`, `BREVO_SENDER_NAME`, and `BREVO_SENDER_EMAIL` for password reset and confirmation email delivery. Resend variables remain supported as a fallback for password reset emails. Manual UPI/UTR submissions are stored as `Received` for admin review.
+Copy `.env.example` to `.env` and configure `MONGODB_URI` and `MONGODB_DB`. Set a strong, stable `DOCUMENT_ENCRYPTION_KEY` in production and keep it backed up; changing it makes previously uploaded documents unreadable. Set `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` for real Razorpay checkout orders. Set `BREVO_API_KEY`, `BREVO_SENDER_NAME`, and `BREVO_SENDER_EMAIL` for password reset and confirmation email delivery. Resend variables remain supported as a fallback for password reset emails. Manual UPI/UTR submissions with proof are stored as `Payment Proof Uploaded` for admin review.
 
 Run locally:
 
