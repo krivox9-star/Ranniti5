@@ -16,10 +16,19 @@
     const tone = ['Verified', 'Approved'].includes(status) ? 'green' : status === 'Rejected' ? 'red' : 'amber';
     return `<span class="badge ${tone}">${esc(status)}</span>`;
   };
-  const privateDocument = async (registrationId, type, filename) => {
+  const privateDocument = async (registrationId, type, filename, action = 'download') => {
+    const previewWindow = action === 'view' ? window.open('about:blank', '_blank') : null;
     const response = await fetch(`/api/admin/documents/${type}/${encodeURIComponent(registrationId)}`, { headers: { Authorization: `Bearer ${state.token}` } });
-    if (!response.ok) throw new Error('Unable to access document');
+    if (!response.ok) {
+      previewWindow?.close();
+      throw new Error('Unable to access document');
+    }
     const url = URL.createObjectURL(await response.blob());
+    if (previewWindow) {
+      previewWindow.location.href = url;
+      window.setTimeout(() => URL.revokeObjectURL(url), 60000);
+      return;
+    }
     const link = document.createElement('a');
     link.href = url;
     const disposition = response.headers.get('content-disposition') || '';
@@ -58,7 +67,7 @@
     const createdDate = $('filterDate').value;
     const matches = state.registrations.filter((registration) => {
       const date = String(registration.created_at || '').slice(0, 10);
-      const searchFields = `${registration.registrationId || registration.id || ''} ${registration.full_name || ''} ${registration.email || ''} ${registration.mobile || ''} ${registration.company || ''}`.toLowerCase();
+        const searchFields = `${registration.registrationId || registration.id || ''} ${registration.full_name || ''} ${registration.email || ''} ${registration.mobile || ''} ${registration.company || ''} ${registration.business_name || ''} ${registration.business_category || ''} ${registration.business_address || ''}`.toLowerCase();
       return (!query || searchFields.includes(query))
         && (!member || String(registration.full_name || '').toLowerCase().includes(member))
         && (!mobile || String(registration.mobile || '').toLowerCase().includes(mobile))
@@ -116,15 +125,30 @@
     renderManagedRegistrations();
   };
 
-  const originalExportData = window.exportData;
-  window.exportData = (type) => {
-    if (type !== 'registrations') return originalExportData?.(type);
-    csv(state.registrations, [['Registration ID', 'registrationId'], ['Member', 'full_name'], ['Email', 'email'], ['Company', 'company'], ['Mobile', 'mobile'], ['Hoodie Size', 'hoodie_size'], ['Amount', 'amount'], ['Payment Status', 'status'], ['Entry Pass', 'pass.pass_number'], ['Check-in', 'checkin.checked_at']], 'ranniti5-registrations.csv');
-  };
+  document.querySelectorAll('[data-export="registrations"]').forEach((button) => { button.textContent = 'Export to Excel'; });
+  document.addEventListener('click', async (event) => {
+    const button = event.target.closest('[data-export="registrations"]');
+    if (!button) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    try {
+      const response = await fetch('/api/admin/registrations/export.xlsx', { headers: { Authorization: `Bearer ${state.token}` } });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.message || 'Unable to export registrations');
+      }
+      const url = URL.createObjectURL(await response.blob());
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'ranniti5-registrations.xlsx';
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) { notify(error.message, true); }
+  }, true);
 
   const field = (label, value) => `<div class="metric-row"><span>${esc(label)}</span><strong>${rowValue(value)}</strong></div>`;
   const detailDocument = (id, type, metadata) => metadata
-    ? `<button class="btn small" data-secure-document="${type}" data-registration-id="${esc(id)}" data-document-filename="${esc(metadata.filename || '')}">View / Download</button>`
+    ? `<span class="row-actions"><button class="btn small" data-secure-document="${type}" data-document-action="view" data-registration-id="${esc(id)}">View</button><button class="btn small" data-secure-document="${type}" data-document-action="download" data-registration-id="${esc(id)}" data-document-filename="${esc(metadata.filename || '')}">Download</button></span>`
     : '<span class="muted">Not uploaded</span>';
   async function openManagedDetails(id, edit = false) {
     try {
@@ -135,15 +159,18 @@
       const registrationStatus = canonicalRegistrationStatus(registration);
       const allFields = [
         ['full_name', 'Member name'], ['email', 'Email'], ['mobile', 'Mobile'], ['company', 'Company'],
+          ['business_name', 'Business Name'], ['business_category', 'Business Category'], ['business_address', 'Business Address'],
         ['region', 'BNI Region'], ['chapter', 'BNI Chapter'], ['gst_number', 'GST number'], ['city', 'City'],
         ['date_of_birth', 'Date of birth'], ['hoodie_size', 'Hoodie size'], ['business_intent', 'Business intent'],
         ['guest_name', 'Guest name'], ['attendee_names', 'Family member information'],
+        ['information_confirmed', 'Information confirmed'], ['terms_accepted', 'Terms accepted'],
       ];
       if (registration.package_name === 'Triple Occupancy') allFields.push(['stay_partner_1', 'Preferred Stay Partner 1'], ['stay_partner_2', 'Preferred Stay Partner 2']);
       if (registration.package_name === 'Double Occupancy') allFields.push(['stay_partner_1', 'Preferred Stay Partner']);
       if (edit) {
         const editableFields = [
           ['full_name', 'Member name'], ['email', 'Email'], ['mobile', 'Mobile'], ['company', 'Company'],
+            ['business_name', 'Business Name'], ['business_category', 'Business Category'], ['business_address', 'Business Address'],
           ['region', 'BNI Region'], ['chapter', 'BNI Chapter'], ['gst_number', 'GST number'], ['city', 'City'],
           ['date_of_birth', 'Date of birth'], ['hoodie_size', 'Hoodie size'], ['business_intent', 'Business intent'],
           ['guest_name', 'Guest name'], ['attendee_names', 'Family names (comma separated)'],
@@ -151,7 +178,9 @@
         ];
         $('modalContent').innerHTML = `<h2>Edit registration information</h2><p class="muted">${esc(id)}</p><form id="managedEditForm"><div class="form-grid">${editableFields.map(([key, label]) => {
           const value = key === 'attendee_names' && Array.isArray(registration[key]) ? registration[key].join(', ') : registration[key] || '';
+          if (key === 'business_address') return `<label>${esc(label)}<textarea name="${key}" required style="width:100%;min-height:88px;margin-top:5px;padding:9px;border:1px solid var(--line);border-radius:5px;font:inherit">${esc(value)}</textarea></label>`;
           return `<label>${esc(label)}<input name="${key}" value="${esc(value)}" /></label>`;
+
         }).join('')}<label>Package<select name="package_name">${Object.keys(packagePrices).map((name) => `<option value="${esc(name)}" ${name === registration.package_name ? 'selected' : ''}>${esc(name)}</option>`).join('')}</select></label></div><div class="modal-foot"><button type="button" class="btn" data-managed-back="${esc(id)}">Cancel</button><button class="btn primary">Save changes</button></div></form>`;
         $('managedEditForm').onsubmit = async (event) => {
           event.preventDefault();
@@ -200,7 +229,7 @@
     if (!target) return;
     if (target.matches('[data-secure-document]')) {
       event.preventDefault();
-      try { await privateDocument(target.dataset.registrationId, target.dataset.secureDocument, target.dataset.documentFilename); }
+      try { await privateDocument(target.dataset.registrationId, target.dataset.secureDocument, target.dataset.documentFilename, target.dataset.documentAction || 'download'); }
       catch (error) { notify(error.message, true); }
       return;
     }

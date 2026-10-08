@@ -139,7 +139,14 @@
             <div class="field"><label for="gstNumber">GST NUMBER <span>(OPTIONAL)</span></label><input id="gstNumber" name="gstNumber" autocapitalize="characters" spellcheck="false" placeholder="GST NUMBER" style="text-transform: uppercase; letter-spacing: 0.04em;" /></div>
             <div class="field"><label for="city">City</label><input id="city" name="city" required autocomplete="address-level2" /></div>
             <div class="field"><label for="dateOfBirth">Date of Birth</label><input id="dateOfBirth" name="dateOfBirth" type="date" required /></div>
-            <div class="field"><label for="hoodieSize">Hoodie Size (Chest Size in Inches)</label><select id="hoodieSize" name="hoodieSize" required><option value="">Select chest size</option><option value="36 – XS">36 – XS</option><option value="38 – S">38 – S</option><option value="40 – M">40 – M</option><option value="42 – L">42 – L</option><option value="44 – XL">44 – XL</option><option value="46 – XXL">46 – XXL</option><option value="48 – 3XL">48 – 3XL</option><option value="50 – 4XL">50 – 4XL</option><option value="52 – 5XL">52 – 5XL</option></select></div>
+            <div class="field"><label for="hoodieSize">Hoodie Size</label><select id="hoodieSize" name="hoodieSize" required><option value="">Select size</option><option value="36 – XS">36 – XS</option><option value="38 – S">38 – S</option><option value="40 – M">40 – M</option><option value="42 – L">42 – L</option><option value="44 – XL">44 – XL</option><option value="46 – XXL">46 – XXL</option><option value="48 – 3XL">48 – 3XL</option><option value="50 – 4XL">50 – 4XL</option><option value="52 – 5XL">52 – 5XL</option></select></div>
+          </div>
+
+          <div class="section-title">Business Details</div>
+          <div class="grid">
+            <div class="field"><label for="businessName">Business Name</label><input id="businessName" name="businessName" required placeholder="Enter Business Name" /></div>
+            <div class="field"><label for="businessCategory">Business Category</label><input id="businessCategory" name="businessCategory" required placeholder="Enter Business Category" /></div>
+            <div class="field full"><label for="businessAddress">Business Address</label><textarea id="businessAddress" name="businessAddress" required placeholder="Enter Complete Business Address"></textarea></div>
           </div>
 
           <div class="section-title">Business Intent</div>
@@ -171,8 +178,8 @@
           </div>
 
           <div class="consents">
-            <label class="consent"><input type="checkbox" required /> <span>I confirm that the information provided is correct and understand that prices include 18% GST (GST NUMBER: 24ADSPV9796P1ZW).</span></label>
-            <label class="consent"><input type="checkbox" required /> <span>I agree to the RANNITI 5 event terms and conditions, including accommodation and cancellation policies.</span></label>
+            <label class="consent"><input type="checkbox" name="informationConfirmed" value="true" required /> <span>I confirm that the information provided is correct and understand that prices include 18% GST (GST NUMBER: 24ADSPV9796P1ZW).</span></label>
+            <label class="consent"><input type="checkbox" name="termsAccepted" value="true" required /> <span>I agree to the RANNITI 5 event terms and conditions, including accommodation and cancellation policies.</span></label>
           </div>
           <button class="button" type="submit">Confirm Registration</button>
           <div class="success" id="formSuccess" role="status">Details confirmed. Complete the manual payment below.</div>

@@ -2,6 +2,7 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import multer from 'multer';
+import ExcelJS from 'exceljs';
 import { v4 as uuidv4 } from 'uuid';
 import { collection } from '../config/database.js';
 import { adminMiddleware, authMiddleware } from '../middleware/authMiddleware.js';
@@ -72,11 +73,12 @@ router.post('/registrations', parseUpload(upload.single('aadhaarCard')), require
   const stayPartner2 = String(body.stayPartner2 || '').trim();
   const isTriple = packageName === 'Triple Occupancy';
   const isDouble = packageName === 'Double Occupancy';
-  const requiredFields = [body.mobile, body.region, body.chapter, body.city, body.dateOfBirth, body.hoodieSize, body.businessIntent];
+  const requiredFields = [body.mobile, body.region, body.chapter, body.city, body.dateOfBirth, body.hoodieSize, body.businessIntent, body.businessName, body.businessCategory, body.businessAddress];
   if (!name || !email || password.length < 8 || !packageName || !amount || requiredFields.some((value) => !String(value || '').trim())) {
     return res.status(400).json({ success: false, message: !packages[packageName] && packageName ? `Unknown package: ${packageName}` : 'Name, email, password (8+ characters) and package are required' });
   }
   if (!hoodieSizes.has(String(body.hoodieSize || '').trim())) return res.status(400).json({ success: false, message: 'Select a valid hoodie chest size' });
+  if (body.informationConfirmed !== 'true' || body.termsAccepted !== 'true') return res.status(400).json({ success: false, message: 'Please confirm your information and accept the event terms' });
   if ((packageName.startsWith('1 Member + 1 Spouse + 1 Kid') || packageName.startsWith('1 Member + 1 Family Member + 1 Kid')) && attendeeNames.length < 3) return res.status(400).json({ success: false, message: 'Member, spouse and child names are required for the selected family package' });
   if (!aadhaarCard || !validDocument(aadhaarCard)) return res.status(400).json({ success: false, message: 'A valid Aadhaar Card PDF, JPG, JPEG or PNG (up to 5 MB) is required' });
   if ((isTriple && (!stayPartner1 || !stayPartner2)) || (isDouble && !stayPartner1)) return res.status(400).json({ success: false, message: 'Required stay partner names are missing' });
@@ -85,7 +87,7 @@ router.post('/registrations', parseUpload(upload.single('aadhaarCard')), require
   const now = new Date().toISOString();
   const savedAttendeeNames = attendeeNames.length ? attendeeNames : [name];
   const guestName = body.guestName || attendeeNames.slice(1).join(', ');
-  const registration = { id, confirmation_token_hash: confirmationTokenHash(confirmationToken), full_name: name, email, mobile: body.mobile || '', company: body.company || '', guest_name: guestName, attendee_names: savedAttendeeNames, stay_partner_1: isTriple || isDouble ? stayPartner1 : '', stay_partner_2: isTriple ? stayPartner2 : '', region: body.region || '', chapter: body.chapter || '', gst_number: String(body.gstNumber || '').toUpperCase(), city: body.city || '', date_of_birth: body.dateOfBirth || '', hoodie_size: body.hoodieSize || '', business_intent: body.businessIntent || '', package_name: packageName, package_price: Number((amount / 1.18).toFixed(2)), gst_amount: Number((amount - amount / 1.18).toFixed(2)), total_amount: amount, amount, status: 'Pending', registration_status: 'Pending', payment_status: 'Pending', admin_remark: '', created_at: now, updated_at: now };
+  const registration = { id, confirmation_token_hash: confirmationTokenHash(confirmationToken), full_name: name, email, mobile: body.mobile || '', company: body.company || '', business_name: String(body.businessName).trim(), business_category: String(body.businessCategory).trim(), business_address: String(body.businessAddress).trim(), information_confirmed: true, terms_accepted: true, guest_name: guestName, attendee_names: savedAttendeeNames, stay_partner_1: isTriple || isDouble ? stayPartner1 : '', stay_partner_2: isTriple ? stayPartner2 : '', region: body.region || '', chapter: body.chapter || '', gst_number: String(body.gstNumber || '').toUpperCase(), city: body.city || '', date_of_birth: body.dateOfBirth || '', hoodie_size: body.hoodieSize || '', business_intent: body.businessIntent || '', package_name: packageName, package_price: Number((amount / 1.18).toFixed(2)), gst_amount: Number((amount - amount / 1.18).toFixed(2)), total_amount: amount, amount, status: 'Pending', registration_status: 'Pending', payment_status: 'Pending', admin_remark: '', created_at: now, updated_at: now };
   const registrations = await collection('registrations');
   const registrationDocuments = await collection('registration_documents');
   await registrations.insertOne(registration);
@@ -182,6 +184,76 @@ router.get('/admin/registrations', authMiddleware, adminMiddleware, async (req, 
   return res.json({ success: true, registrations: registrations.map((r) => publicRegistration({ ...r, ...(paymentBy.get(r.id) ? { payment_status: paymentBy.get(r.id).status, transaction_id: paymentBy.get(r.id).transaction_id, payment_date: paymentBy.get(r.id).payment_date } : {}), ...(invoiceBy.get(r.id) ? { invoice_number: invoiceBy.get(r.id).invoice_number } : {}), ...(passBy.get(r.id) ? { pass_number: passBy.get(r.id).pass_number } : {}), documents: docsByRegistration.get(r.id) || {} })) });
 });
 
+router.get('/admin/registrations/export.xlsx', authMiddleware, adminMiddleware, async (req, res) => {
+  const registrations = await (await collection('registrations')).find().sort({ created_at: -1 }).toArray();
+  const registrationIds = registrations.map((registration) => registration.id);
+  const [payments, documents, passes, checkins] = await Promise.all([
+    (await collection('payments')).find({ registration_id: { $in: registrationIds } }).toArray(),
+    (await collection('registration_documents')).find({ registration_id: { $in: registrationIds } }, { projection: { registration_id: 1, type: 1, filename: 1, _id: 0 } }).toArray(),
+    (await collection('entry_passes')).find({ registration_id: { $in: registrationIds } }, { projection: { registration_id: 1, pass_number: 1, _id: 0 } }).toArray(),
+    (await collection('checkins')).find({ registration_id: { $in: registrationIds } }, { projection: { registration_id: 1, checked_at: 1, _id: 0 } }).toArray(),
+  ]);
+  const keyed = (items) => new Map(items.map((item) => [item.registration_id, item]));
+  const paymentByRegistration = keyed(payments);
+  const passByRegistration = keyed(passes);
+  const checkinByRegistration = keyed(checkins);
+  const documentsByRegistration = new Map();
+  documents.forEach((document) => documentsByRegistration.set(document.registration_id, { ...(documentsByRegistration.get(document.registration_id) || {}), [document.type]: document.filename }));
+  const safeCell = (value) => {
+    if (value === null || value === undefined) return '';
+    if (Array.isArray(value)) value = value.join(', ');
+    if (typeof value === 'number' || typeof value === 'boolean') return value;
+    const text = String(value);
+    return /^[=+\-@]/.test(text) ? `'${text}` : text;
+  };
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet('Registrations');
+  sheet.columns = [
+    ['Registration ID', 'id'], ['Member Name', 'full_name'], ['Mobile Number', 'mobile'], ['Email', 'email'],
+    ['Package', 'package_name'], ['Occupancy', 'occupancy'], ['Package Price', 'package_price'], ['GST', 'gst_amount'], ['Total Amount', 'total_amount'],
+    ['Preferred Stay Partner 1', 'stay_partner_1'], ['Preferred Stay Partner 2', 'stay_partner_2'],
+    ['Business Name', 'business_name'], ['Business Category', 'business_category'], ['Business Address', 'business_address'],
+    ['Hoodie Size', 'hoodie_size'], ['Aadhaar / ID Proof File Name', 'aadhaar_filename'], ['Payment Proof File Name', 'payment_proof_filename'],
+    ['Registration Date', 'registration_date'], ['Registration Time', 'registration_time'], ['Payment Status', 'payment_status'], ['Registration Status', 'registration_status'],
+    ['Company', 'company'], ['BNI Region', 'region'], ['BNI Chapter', 'chapter'], ['GST Number', 'gst_number'], ['City', 'city'],
+    ['Date of Birth', 'date_of_birth'], ['Business Intent', 'business_intent'], ['Guest Name', 'guest_name'], ['Family Member Names', 'attendee_names'],
+    ['Information Confirmed', 'information_confirmed'], ['Terms Accepted', 'terms_accepted'], ['Transaction ID', 'transaction_id'], ['Payment Date', 'payment_date'],
+    ['Admin Remark', 'admin_remark'], ['Entry Pass Number', 'pass_number'], ['Check-in Date/Time', 'checkin_date'],
+  ].map(([header, key]) => ({ header, key, width: Math.min(Math.max(header.length + 3, 18), 42) }));
+  for (const registration of registrations) {
+    const payment = paymentByRegistration.get(registration.id) || {};
+    const files = documentsByRegistration.get(registration.id) || {};
+    const createdAt = registration.created_at ? new Date(registration.created_at) : null;
+    const checkin = checkinByRegistration.get(registration.id);
+    const packageName = registration.package_name || '';
+    const occupancy = packageName.includes('Triple Occupancy') ? 'Triple Occupancy' : packageName.includes('Double Occupancy') ? 'Double Occupancy' : packageName ? 'Family Package' : '';
+    const values = {
+      ...registration,
+      occupancy,
+      package_price: registration.package_price ?? Number((Number(registration.amount || 0) / 1.18).toFixed(2)),
+      gst_amount: registration.gst_amount ?? Number((Number(registration.amount || 0) - Number(registration.amount || 0) / 1.18).toFixed(2)),
+      total_amount: registration.total_amount ?? registration.amount,
+      aadhaar_filename: files.aadhaar,
+      payment_proof_filename: files['payment-proof'],
+      registration_date: createdAt && !Number.isNaN(createdAt.valueOf()) ? createdAt.toLocaleDateString('en-IN') : '',
+      registration_time: createdAt && !Number.isNaN(createdAt.valueOf()) ? createdAt.toLocaleTimeString('en-IN') : '',
+      payment_status: payment.status || registration.payment_status || 'Pending',
+      registration_status: registration.registration_status || registration.status || 'Pending',
+      transaction_id: payment.transaction_id || registration.transaction_id,
+      payment_date: payment.payment_date || registration.payment_date,
+      pass_number: passByRegistration.get(registration.id)?.pass_number,
+      checkin_date: checkin?.checked_at,
+    };
+    sheet.addRow(Object.fromEntries(sheet.columns.map(({ key }) => [key, safeCell(values[key])])));
+  }
+  sheet.getRow(1).font = { bold: true };
+  sheet.views = [{ state: 'frozen', ySplit: 1 }];
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', 'attachment; filename="ranniti5-registrations.xlsx"');
+  res.setHeader('Cache-Control', 'private, no-store');
+  return res.send(await workbook.xlsx.writeBuffer());
+});
+
 router.get('/admin/registrations/:registrationId', authMiddleware, adminMiddleware, async (req, res) => {
   const registration = await (await collection('registrations')).findOne({ id: req.params.registrationId });
   if (!registration) return res.status(404).json({ success: false, message: 'Registration not found' });
@@ -194,12 +266,16 @@ router.get('/admin/registrations/:registrationId', authMiddleware, adminMiddlewa
 });
 
 router.patch('/admin/registrations/:registrationId', authMiddleware, adminMiddleware, async (req, res) => {
-  const allowed = ['full_name', 'email', 'mobile', 'company', 'guest_name', 'attendee_names', 'stay_partner_1', 'stay_partner_2', 'region', 'chapter', 'gst_number', 'city', 'date_of_birth', 'hoodie_size', 'business_intent', 'package_name', 'admin_remark'];
+  const allowed = ['full_name', 'email', 'mobile', 'company', 'business_name', 'business_category', 'business_address', 'guest_name', 'attendee_names', 'stay_partner_1', 'stay_partner_2', 'region', 'chapter', 'gst_number', 'city', 'date_of_birth', 'hoodie_size', 'business_intent', 'package_name', 'admin_remark'];
   const updates = Object.fromEntries(Object.entries(req.body || {}).filter(([key, value]) => allowed.includes(key) && value !== undefined));
   if (!Object.keys(updates).length) return res.status(400).json({ success: false, message: 'No editable fields provided' });
   const registrations = await collection('registrations');
   const current = await registrations.findOne({ id: req.params.registrationId });
   if (!current) return res.status(404).json({ success: false, message: 'Registration not found' });
+  for (const field of ['business_name', 'business_category', 'business_address']) {
+    if (updates[field] !== undefined && !String(updates[field]).trim()) return res.status(400).json({ success: false, message: `${field.replaceAll('_', ' ')} is required` });
+    if (updates[field] !== undefined) updates[field] = String(updates[field]).trim();
+  }
   if (updates.email) updates.email = String(updates.email).trim().toLowerCase();
   if (updates.full_name) updates.full_name = String(updates.full_name).trim();
   if (updates.package_name) {
