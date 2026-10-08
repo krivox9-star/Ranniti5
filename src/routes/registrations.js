@@ -368,7 +368,9 @@ router.post('/admin/payments/:registrationId/confirm', authMiddleware, adminMidd
   await registrations.updateOne({ id: registration.id }, { $set: { status: 'Confirmed', registration_status: 'Approved', payment_status: 'Verified', updated_at: now } });
   const artifacts = await createArtifacts(registration, { ...payment, status: 'Confirmed' });
   let email;
-  try { email = await sendConfirmationEmail(registration, artifacts); } catch (error) { return res.status(502).json({ success: false, message: error.message, artifacts }); }
+  try { email = await sendConfirmationEmail(registration, artifacts); } catch (error) {
+    return res.json({ success: true, registrationId: registration.id, artifacts, email: { status: 'Failed', error: error.message }, message: 'Payment confirmed, but the confirmation email could not be sent.' });
+  }
   return res.json({ success: true, registrationId: registration.id, artifacts, email });
 });
 
