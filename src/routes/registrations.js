@@ -11,10 +11,11 @@ import { createArtifacts, sendConfirmationEmail } from '../services/documents.js
 const router = express.Router();
 const documentEncryptionKey = crypto.createHash('sha256').update(process.env.DOCUMENT_ENCRYPTION_KEY || process.env.JWT_SECRET || 'ranniti-dev-secret').digest();
 const acceptedDocuments = new Set(['application/pdf', 'image/jpeg', 'image/png']);
+const acceptedPhotos = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024, files: 1 },
-  fileFilter: (req, file, callback) => callback(null, acceptedDocuments.has(file.mimetype)),
+  limits: { fileSize: 5 * 1024 * 1024, files: 2 },
+  fileFilter: (req, file, callback) => callback(null, file.fieldname === 'professionalPhoto' ? acceptedPhotos.has(file.mimetype) : acceptedDocuments.has(file.mimetype)),
 });
 const parseUpload = (middleware) => (req, res, next) => middleware(req, res, (error) => {
   if (!error) return next();
@@ -31,6 +32,13 @@ const validDocument = (file) => {
   if (file.mimetype === 'application/pdf') return file.buffer.subarray(0, 5).toString() === '%PDF-';
   if (file.mimetype === 'image/png') return file.buffer.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
   return file.buffer[0] === 0xff && file.buffer[1] === 0xd8 && file.buffer[2] === 0xff;
+};
+const validProfessionalPhoto = (file) => {
+  if (!file || !acceptedPhotos.has(file.mimetype)) return false;
+  const bytes = file.buffer;
+  if (file.mimetype === 'image/png') return bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+  if (file.mimetype === 'image/jpeg') return bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  return bytes.length >= 12 && bytes.subarray(0, 4).toString() === 'RIFF' && bytes.subarray(8, 12).toString() === 'WEBP';
 };
 const confirmationTokenHash = (token) => crypto.createHash('sha256').update(String(token || '')).digest('hex');
 const encryptDocument = (bytes) => {
@@ -58,7 +66,7 @@ const packages = {
 const hoodieSizes = new Set(['36 – XS', '38 – S', '40 – M', '42 – L', '44 – XL', '46 – XXL', '48 – 3XL', '50 – 4XL', '52 – 5XL']);
 const publicRegistration = (r) => { const { confirmation_token_hash, ...safeRegistration } = r; return { ...safeRegistration, registrationId: r.id, package: r.package_name, paymentStatus: r.payment_status, transactionId: r.transaction_id, paymentDate: r.payment_date, entryPassNumber: r.pass_number, invoiceNumber: r.invoice_number }; };
 
-router.post('/registrations', parseUpload(upload.single('aadhaarCard')), requireDocumentKey, async (req, res) => {
+router.post('/registrations', parseUpload(upload.fields([{ name: 'aadhaarCard', maxCount: 1 }, { name: 'professionalPhoto', maxCount: 1 }])), requireDocumentKey, async (req, res) => {
   const body = req.body || {};
   const packageName = String(body.package || '').trim();
   const amount = packages[packageName] || Number(body.amount);
@@ -68,12 +76,14 @@ router.post('/registrations', parseUpload(upload.single('aadhaarCard')), require
   const attendeeNames = (Array.isArray(body.attendeeNames) ? body.attendeeNames : [body.attendee1, body.attendee2, body.attendee3, body.attendee4])
     .map((value) => String(value || '').trim())
     .filter(Boolean);
-  const aadhaarCard = req.file;
+  const aadhaarCard = req.files?.aadhaarCard?.[0];
+  const professionalPhoto = req.files?.professionalPhoto?.[0];
   const stayPartner1 = String(body.stayPartner1 || '').trim();
   const stayPartner2 = String(body.stayPartner2 || '').trim();
   const isTriple = packageName === 'Triple Occupancy';
   const isDouble = packageName === 'Double Occupancy';
   const requiredFields = [body.mobile, body.region, body.chapter, body.city, body.dateOfBirth, body.hoodieSize, body.businessIntent, body.businessName, body.businessCategory, body.businessAddress];
+  if (!['Male', 'Female'].includes(body.gender)) return res.status(400).json({ success: false, message: 'Select Male or Female for gender' });
   if (!name || !email || password.length < 8 || !packageName || !amount || requiredFields.some((value) => !String(value || '').trim())) {
     return res.status(400).json({ success: false, message: !packages[packageName] && packageName ? `Unknown package: ${packageName}` : 'Name, email, password (8+ characters) and package are required' });
   }
@@ -81,6 +91,7 @@ router.post('/registrations', parseUpload(upload.single('aadhaarCard')), require
   if (body.informationConfirmed !== 'true' || body.termsAccepted !== 'true') return res.status(400).json({ success: false, message: 'Please confirm your information and accept the event terms' });
   if ((packageName.startsWith('1 Member + 1 Spouse + 1 Kid') || packageName.startsWith('1 Member + 1 Family Member + 1 Kid')) && attendeeNames.length < 3) return res.status(400).json({ success: false, message: 'Member, spouse and child names are required for the selected family package' });
   if (!aadhaarCard || !validDocument(aadhaarCard)) return res.status(400).json({ success: false, message: 'A valid Aadhaar Card PDF, JPG, JPEG or PNG (up to 5 MB) is required' });
+  if (!professionalPhoto || !validProfessionalPhoto(professionalPhoto)) return res.status(400).json({ success: false, message: 'A valid professional photo in JPG, JPEG, PNG or WEBP format (up to 5 MB) is required' });
   if ((isTriple && (!stayPartner1 || !stayPartner2)) || (isDouble && !stayPartner1)) return res.status(400).json({ success: false, message: 'Required stay partner names are missing' });
   const id = `RN5-REG-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
   const confirmationToken = crypto.randomBytes(32).toString('hex');
@@ -88,12 +99,18 @@ router.post('/registrations', parseUpload(upload.single('aadhaarCard')), require
   const savedAttendeeNames = attendeeNames.length ? attendeeNames : [name];
   const guestName = body.guestName || attendeeNames.slice(1).join(', ');
   const registration = { id, confirmation_token_hash: confirmationTokenHash(confirmationToken), full_name: name, email, mobile: body.mobile || '', company: body.company || '', business_name: String(body.businessName).trim(), business_category: String(body.businessCategory).trim(), business_address: String(body.businessAddress).trim(), information_confirmed: true, terms_accepted: true, guest_name: guestName, attendee_names: savedAttendeeNames, stay_partner_1: isTriple || isDouble ? stayPartner1 : '', stay_partner_2: isTriple ? stayPartner2 : '', region: body.region || '', chapter: body.chapter || '', gst_number: String(body.gstNumber || '').toUpperCase(), city: body.city || '', date_of_birth: body.dateOfBirth || '', hoodie_size: body.hoodieSize || '', business_intent: body.businessIntent || '', package_name: packageName, package_price: Number((amount / 1.18).toFixed(2)), gst_amount: Number((amount - amount / 1.18).toFixed(2)), total_amount: amount, amount, status: 'Pending', registration_status: 'Pending', payment_status: 'Pending', admin_remark: '', created_at: now, updated_at: now };
+  registration.gender = body.gender;
   const registrations = await collection('registrations');
   const registrationDocuments = await collection('registration_documents');
   await registrations.insertOne(registration);
   try {
-    await registrationDocuments.insertOne({ id: uuidv4(), registration_id: id, type: 'aadhaar', filename: aadhaarCard.originalname, content_type: aadhaarCard.mimetype, ...encryptDocument(aadhaarCard.buffer), created_at: now });
+    const photoExtension = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }[professionalPhoto.mimetype];
+    await registrationDocuments.insertMany([
+      { id: uuidv4(), registration_id: id, type: 'aadhaar', filename: aadhaarCard.originalname, content_type: aadhaarCard.mimetype, ...encryptDocument(aadhaarCard.buffer), created_at: now },
+      { id: uuidv4(), registration_id: id, type: 'professional-photo', filename: `professional-photo-${id}.${photoExtension}`, content_type: professionalPhoto.mimetype, ...encryptDocument(professionalPhoto.buffer), created_at: now },
+    ]);
   } catch (error) {
+    await registrationDocuments.deleteMany({ registration_id: id });
     await registrations.deleteOne({ id });
     throw error;
   }
@@ -209,13 +226,14 @@ router.get('/admin/registrations/export.xlsx', authMiddleware, adminMiddleware, 
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet('Registrations');
   sheet.columns = [
-    ['Registration ID', 'id'], ['Member Name', 'full_name'], ['Mobile Number', 'mobile'], ['Email', 'email'],
+    ['Registration ID', 'id'], ['Full Name', 'full_name'], ['Gender', 'gender'], ['Member / Guest', 'member_guest'], ['Mobile Number', 'mobile'], ['Email', 'email'],
     ['Package', 'package_name'], ['Occupancy', 'occupancy'], ['Package Price', 'package_price'], ['GST', 'gst_amount'], ['Total Amount', 'total_amount'],
     ['Preferred Stay Partner 1', 'stay_partner_1'], ['Preferred Stay Partner 2', 'stay_partner_2'],
     ['Business Name', 'business_name'], ['Business Category', 'business_category'], ['Business Address', 'business_address'],
     ['Hoodie Size', 'hoodie_size'], ['Aadhaar / ID Proof File Name', 'aadhaar_filename'], ['Payment Proof File Name', 'payment_proof_filename'],
     ['Registration Date', 'registration_date'], ['Registration Time', 'registration_time'], ['Payment Status', 'payment_status'], ['Registration Status', 'registration_status'],
-    ['Company', 'company'], ['BNI Region', 'region'], ['BNI Chapter', 'chapter'], ['GST Number', 'gst_number'], ['City', 'city'],
+    ['Company', 'company'], ['Designation / Business Category', 'business_category'], ['BNI Region', 'region'], ['BNI Chapter', 'chapter'], ['GST Number', 'gst_number'], ['City', 'city'],
+    ['Professional Photo', 'professional_photo'], ['Professional Photo Path', 'professional_photo_path'],
     ['Date of Birth', 'date_of_birth'], ['Business Intent', 'business_intent'], ['Guest Name', 'guest_name'], ['Family Member Names', 'attendee_names'],
     ['Information Confirmed', 'information_confirmed'], ['Terms Accepted', 'terms_accepted'], ['Transaction ID', 'transaction_id'], ['Payment Date', 'payment_date'],
     ['Admin Remark', 'admin_remark'], ['Entry Pass Number', 'pass_number'], ['Check-in Date/Time', 'checkin_date'],
@@ -235,6 +253,9 @@ router.get('/admin/registrations/export.xlsx', authMiddleware, adminMiddleware, 
       total_amount: registration.total_amount ?? registration.amount,
       aadhaar_filename: files.aadhaar,
       payment_proof_filename: files['payment-proof'],
+      member_guest: registration.guest_name ? 'Guest' : 'Member',
+      professional_photo: files['professional-photo'] || 'No Photo',
+      professional_photo_path: files['professional-photo'] ? `/api/admin/documents/professional-photo/${encodeURIComponent(registration.id)}` : '',
       registration_date: createdAt && !Number.isNaN(createdAt.valueOf()) ? createdAt.toLocaleDateString('en-IN') : '',
       registration_time: createdAt && !Number.isNaN(createdAt.valueOf()) ? createdAt.toLocaleTimeString('en-IN') : '',
       payment_status: payment.status || registration.payment_status || 'Pending',
@@ -266,12 +287,14 @@ router.get('/admin/registrations/:registrationId', authMiddleware, adminMiddlewa
 });
 
 router.patch('/admin/registrations/:registrationId', authMiddleware, adminMiddleware, async (req, res) => {
-  const allowed = ['full_name', 'email', 'mobile', 'company', 'business_name', 'business_category', 'business_address', 'guest_name', 'attendee_names', 'stay_partner_1', 'stay_partner_2', 'region', 'chapter', 'gst_number', 'city', 'date_of_birth', 'hoodie_size', 'business_intent', 'package_name', 'admin_remark'];
+  const allowed = ['full_name', 'email', 'mobile', 'gender', 'company', 'business_name', 'business_category', 'business_address', 'guest_name', 'attendee_names', 'stay_partner_1', 'stay_partner_2', 'region', 'chapter', 'gst_number', 'city', 'date_of_birth', 'hoodie_size', 'business_intent', 'package_name', 'admin_remark'];
   const updates = Object.fromEntries(Object.entries(req.body || {}).filter(([key, value]) => allowed.includes(key) && value !== undefined));
   if (!Object.keys(updates).length) return res.status(400).json({ success: false, message: 'No editable fields provided' });
   const registrations = await collection('registrations');
   const current = await registrations.findOne({ id: req.params.registrationId });
   if (!current) return res.status(404).json({ success: false, message: 'Registration not found' });
+  if (updates.gender !== undefined && updates.gender !== '' && !['Male', 'Female'].includes(updates.gender)) return res.status(400).json({ success: false, message: 'Gender must be Male or Female' });
+  if (updates.gender === '') delete updates.gender;
   for (const field of ['business_name', 'business_category', 'business_address']) {
     if (updates[field] !== undefined && !String(updates[field]).trim()) return res.status(400).json({ success: false, message: `${field.replaceAll('_', ' ')} is required` });
     if (updates[field] !== undefined) updates[field] = String(updates[field]).trim();
@@ -362,7 +385,7 @@ router.post('/admin/payments/:registrationId/resend', authMiddleware, adminMiddl
 });
 
 router.get('/admin/documents/:type/:id', authMiddleware, adminMiddleware, async (req, res) => {
-  if (['aadhaar', 'payment-proof'].includes(req.params.type)) {
+  if (['aadhaar', 'payment-proof', 'professional-photo'].includes(req.params.type)) {
     if ((process.env.NODE_ENV === 'production' || process.env.VERCEL || process.env.NETLIFY || process.env.RENDER || process.env.AWS_LAMBDA_FUNCTION_NAME) && !process.env.DOCUMENT_ENCRYPTION_KEY) {
       return res.status(503).json({ success: false, message: 'Secure document storage is not configured. Set DOCUMENT_ENCRYPTION_KEY on the server.' });
     }
@@ -372,6 +395,7 @@ router.get('/admin/documents/:type/:id', authMiddleware, adminMiddleware, async 
     res.setHeader('Content-Type', document.content_type);
     res.setHeader('Cache-Control', 'private, no-store');
     res.setHeader('X-Content-Type-Options', 'nosniff');
+    if (req.params.type === 'professional-photo' && req.query.view === '1') return res.setHeader('Content-Disposition', 'inline').send(decryptDocument(document));
     return res.attachment(document.filename).send(decryptDocument(document));
   }
   const table = req.params.type === 'invoice' ? 'invoices' : 'entry_passes';

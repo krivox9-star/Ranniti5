@@ -67,6 +67,12 @@
       .file-control input { flex: 1 1 220px; }
       .file-name { color: var(--accent-2); overflow-wrap: anywhere; }
       .remove-file { border: 0; padding: 0; color: var(--accent-2); background: none; font: inherit; font-weight: 700; cursor: pointer; }
+      .gender-options { display: flex; gap: 22px; }
+      .gender-options label { display: inline-flex; align-items: center; gap: 8px; }
+      .gender-options input { width: 17px; height: 17px; margin: 0; accent-color: var(--accent); }
+      .photo-preview { display: flex; align-items: center; gap: 14px; margin-top: 12px; }
+      .photo-preview img { width: 92px; height: 92px; object-fit: cover; border: 1px solid var(--line); border-radius: 10px; }
+      .upload-help { color: var(--muted); font-size: .85rem; line-height: 1.5; }
       .attendee-rule { margin: 0 0 14px; color: var(--accent-2); font-size: .92rem; line-height: 1.5; }
       label { color: var(--muted); font-size: .85rem; font-weight: 600; }
       input, select, textarea { width: 100%; padding: 13px 14px; border: 1px solid rgba(255,255,255,.12); border-radius: 10px; outline: 0; background: rgba(0,0,0,.22); color: var(--text); font: inherit; text-transform: uppercase; }
@@ -133,6 +139,7 @@
             <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" required autocomplete="email" /></div>
             <div class="field"><label for="password">Account password</label><input id="password" name="password" type="password" minlength="8" required autocomplete="new-password" /></div>
             <div class="field"><label for="mobile">Mobile</label><input id="mobile" name="mobile" type="tel" required autocomplete="tel" /></div>
+            <div class="field full"><label>Gender <span aria-hidden="true">*</span></label><div class="gender-options"><label><input type="radio" name="gender" value="Male" required /> Male</label><label><input type="radio" name="gender" value="Female" /> Female</label></div></div>
 
             <div class="field"><label for="region">BNI Region</label><input id="region" name="region" required /></div>
             <div class="field"><label for="chapter">BNI Chapter</label><input id="chapter" name="chapter" required /></div>
@@ -175,6 +182,14 @@
           <div class="field full">
             <label for="aadhaarCard">Upload Aadhaar Card</label>
             <div class="file-control"><input id="aadhaarCard" name="aadhaarCard" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" required /><span class="file-name" id="aadhaarFileName">PDF, JPG, JPEG or PNG · Max 5 MB</span><button class="remove-file" id="removeAadhaar" type="button" hidden>Remove</button></div>
+          </div>
+
+          <div class="section-title">Professional Photo</div>
+          <div class="field full">
+            <label for="professionalPhoto">Professional Photo <span aria-hidden="true">*</span></label>
+            <div class="file-control"><input id="professionalPhoto" name="professionalPhoto" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" required /><span class="file-name" id="professionalPhotoFileName">Recommended: Clear professional headshot · JPG, PNG or WEBP · Max 5 MB</span><button class="remove-file" id="removeProfessionalPhoto" type="button" hidden>Remove</button></div>
+            <div class="photo-preview" id="professionalPhotoPreview" hidden><img id="professionalPhotoPreviewImage" alt="Professional photo preview" /><span class="upload-help">Select another photo to replace this one.</span></div>
+            <small class="upload-help">Please upload a clear, professional photograph. This photograph may be used for event identification, participant records and event-related purposes.</small>
           </div>
 
           <div class="consents">
@@ -341,6 +356,37 @@
         document.getElementById('aadhaarFileName').textContent = 'PDF, JPG, JPEG or PNG · Max 5 MB';
         document.getElementById('removeAadhaar').hidden = true;
       });
+      const professionalPhotoInput = document.getElementById('professionalPhoto');
+      const photoPreview = document.getElementById('professionalPhotoPreview');
+      const photoPreviewImage = document.getElementById('professionalPhotoPreviewImage');
+      let professionalPhotoUrl = '';
+      const clearProfessionalPhoto = () => {
+        professionalPhotoInput.value = '';
+        if (professionalPhotoUrl) URL.revokeObjectURL(professionalPhotoUrl);
+        professionalPhotoUrl = '';
+        photoPreviewImage.removeAttribute('src');
+        photoPreview.hidden = true;
+        document.getElementById('professionalPhotoFileName').textContent = 'Recommended: Clear professional headshot · JPG, PNG or WEBP · Max 5 MB';
+        document.getElementById('removeProfessionalPhoto').hidden = true;
+      };
+      professionalPhotoInput.addEventListener('change', () => {
+        const file = professionalPhotoInput.files[0];
+        if (!file) return;
+        const allowed = /\.(jpe?g|png|webp)$/i.test(file.name);
+        if (!allowed || file.size > 5 * 1024 * 1024) {
+          clearProfessionalPhoto();
+          document.getElementById('formSuccess').textContent = !allowed ? 'Choose a JPG, JPEG, PNG or WEBP image.' : 'The professional photo must be 5 MB or smaller.';
+          document.getElementById('formSuccess').style.display = 'block';
+          return;
+        }
+        if (professionalPhotoUrl) URL.revokeObjectURL(professionalPhotoUrl);
+        professionalPhotoUrl = URL.createObjectURL(file);
+        photoPreviewImage.src = professionalPhotoUrl;
+        photoPreview.hidden = false;
+        document.getElementById('professionalPhotoFileName').textContent = file.name;
+        document.getElementById('removeProfessionalPhoto').hidden = false;
+      });
+      document.getElementById('removeProfessionalPhoto').addEventListener('click', clearProfessionalPhoto);
       document.getElementById('registrationForm').addEventListener('submit', async (event) => {
         event.preventDefault();
         const formSuccess = document.getElementById('formSuccess');
