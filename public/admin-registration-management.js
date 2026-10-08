@@ -44,7 +44,7 @@
 
   const registrationTable = document.querySelector('#registrationBody')?.closest('table');
   if (registrationTable) {
-    registrationTable.querySelector('thead').innerHTML = '<tr><th>Registration ID</th><th>Member</th><th>Package</th><th>Mobile</th><th>Payment Status</th><th>Registration Status</th><th>Aadhaar</th><th>Payment Proof</th><th>Date</th><th>Actions</th></tr>';
+    registrationTable.querySelector('thead').innerHTML = '<tr><th>Registration ID</th><th>Member</th><th>Package</th><th>Mobile</th><th>Hoodie Size</th><th>Payment Status</th><th>Registration Status</th><th>Aadhaar</th><th>Payment Proof</th><th>Date</th><th>Actions</th></tr>';
   }
 
   function renderManagedRegistrations() {
@@ -82,6 +82,7 @@
         <td><div class="name">${rowValue(registration.full_name)}</div><div class="sub">${rowValue(registration.email)}</div></td>
         <td>${rowValue(registration.package || registration.package_name)}</td>
         <td>${rowValue(registration.mobile)}</td>
+        <td>${rowValue(registration.hoodie_size)}</td>
         <td>${reviewBadge(payment)}</td>
         <td>${reviewBadge(registrationState)}</td>
         <td>${docs.aadhaar ? `<button class="link" data-secure-document="aadhaar" data-registration-id="${esc(id)}">View / Download</button>` : '—'}</td>
@@ -89,7 +90,7 @@
         <td>${date(registration.created_at)}</td>
         <td><div class="row-actions"><button class="btn small" data-managed-details="${esc(id)}">Open</button><button class="btn small" data-managed-edit="${esc(id)}">Edit</button></div></td>
       </tr>`;
-    }).join('') || '<tr><td colspan="10" class="empty">No registrations match these filters.</td></tr>';
+    }).join('') || '<tr><td colspan="11" class="empty">No registrations match these filters.</td></tr>';
   }
   window.renderRegistrations = renderManagedRegistrations;
   ['filterMember', 'filterMobile', 'filterRegistrationId', 'filterPackage', 'filterPaymentStatus', 'filterRegistrationStatus', 'filterDate'].forEach((id) => {
@@ -113,6 +114,12 @@
     renderPayments();
     renderConfirmed();
     renderManagedRegistrations();
+  };
+
+  const originalExportData = window.exportData;
+  window.exportData = (type) => {
+    if (type !== 'registrations') return originalExportData?.(type);
+    csv(state.registrations, [['Registration ID', 'registrationId'], ['Member', 'full_name'], ['Email', 'email'], ['Company', 'company'], ['Mobile', 'mobile'], ['Hoodie Size', 'hoodie_size'], ['Amount', 'amount'], ['Payment Status', 'status'], ['Entry Pass', 'pass.pass_number'], ['Check-in', 'checkin.checked_at']], 'ranniti5-registrations.csv');
   };
 
   const field = (label, value) => `<div class="metric-row"><span>${esc(label)}</span><strong>${rowValue(value)}</strong></div>`;

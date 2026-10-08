@@ -54,6 +54,7 @@ const packages = {
   '1 Member + 1 Spouse + 1 Kid (Above 5 years)': 34810,
   '1 Member + 1 Family Member + 1 Kid (Above 5 years)': 34810,
 };
+const hoodieSizes = new Set(['36 – XS', '38 – S', '40 – M', '42 – L', '44 – XL', '46 – XXL', '48 – 3XL', '50 – 4XL', '52 – 5XL']);
 const publicRegistration = (r) => { const { confirmation_token_hash, ...safeRegistration } = r; return { ...safeRegistration, registrationId: r.id, package: r.package_name, paymentStatus: r.payment_status, transactionId: r.transaction_id, paymentDate: r.payment_date, entryPassNumber: r.pass_number, invoiceNumber: r.invoice_number }; };
 
 router.post('/registrations', parseUpload(upload.single('aadhaarCard')), requireDocumentKey, async (req, res) => {
@@ -75,6 +76,7 @@ router.post('/registrations', parseUpload(upload.single('aadhaarCard')), require
   if (!name || !email || password.length < 8 || !packageName || !amount || requiredFields.some((value) => !String(value || '').trim())) {
     return res.status(400).json({ success: false, message: !packages[packageName] && packageName ? `Unknown package: ${packageName}` : 'Name, email, password (8+ characters) and package are required' });
   }
+  if (!hoodieSizes.has(String(body.hoodieSize || '').trim())) return res.status(400).json({ success: false, message: 'Select a valid hoodie chest size' });
   if ((packageName.startsWith('1 Member + 1 Spouse + 1 Kid') || packageName.startsWith('1 Member + 1 Family Member + 1 Kid')) && attendeeNames.length < 3) return res.status(400).json({ success: false, message: 'Member, spouse and child names are required for the selected family package' });
   if (!aadhaarCard || !validDocument(aadhaarCard)) return res.status(400).json({ success: false, message: 'A valid Aadhaar Card PDF, JPG, JPEG or PNG (up to 5 MB) is required' });
   if ((isTriple && (!stayPartner1 || !stayPartner2)) || (isDouble && !stayPartner1)) return res.status(400).json({ success: false, message: 'Required stay partner names are missing' });
