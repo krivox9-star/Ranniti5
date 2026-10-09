@@ -90,6 +90,31 @@
         align-items: center;
         gap: 12px;
       }
+      .register-sponsor {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 5px;
+      }
+      .sponsor-lockup {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+      }
+      .sponsor-label {
+        color: var(--muted-2);
+        font-size: 10px;
+        font-weight: 700;
+        line-height: 1;
+      }
+      .sponsor-logo {
+        display: block;
+        width: 108px;
+        height: 48px;
+        object-fit: contain;
+        object-position: center;
+      }
       .enquire {
         display: flex;
         flex-direction: column;
@@ -539,8 +564,10 @@
         }
         .nav { min-height: 72px; flex-wrap: wrap; justify-content: center; }
         .header-logo { width: 72px; }
+        .nav-cta { width: 100%; flex-wrap: wrap; justify-content: center; gap: 10px; }
+        .register-sponsor { flex-basis: 100%; }
+        .sponsor-logo { width: 100px; height: 44px; }
         .enquire { align-items: center; }
-        .nav-cta .btn:last-child { display: none; }
         .hero { padding-top: 32px; }
         .hero h1 { font-size: 3.8rem; }
         .hero-copy { font-size: 1.05rem; }
@@ -570,7 +597,13 @@
           </a>
           <a class="btn btn-secondary" href="/login">Login</a>
           <a class="btn btn-secondary" href="/login">Admin</a>
-          <a class="btn btn-primary" href="/register">Register Now</a>
+          <div class="register-sponsor">
+            <a class="btn btn-primary" href="/register">Register Now</a>
+            <div class="sponsor-lockup">
+              <span class="sponsor-label">Title Sponsor</span>
+              <img class="sponsor-logo" src="/assets/broghar-realty-title-sponsor.png.jpeg" alt="Broghar Realty, Dholera Smart City" />
+            </div>
+          </div>
         </div>
       </div>
     </header>
