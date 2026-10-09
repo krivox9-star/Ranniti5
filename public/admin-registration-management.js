@@ -33,6 +33,80 @@ import { packages } from '/package-pricing.js';
     URL.revokeObjectURL(url);
   };
   const rowValue = (value) => value ? esc(value) : '<span class="muted">—</span>';
+  const clearDataButton = document.createElement('button');
+  clearDataButton.type = 'button';
+  clearDataButton.className = 'btn danger';
+  clearDataButton.textContent = 'Clear All Dashboard Data';
+  document.querySelector('#view-dashboard .view-head .actions')?.append(clearDataButton);
+  let clearInProgress = false;
+  clearDataButton.addEventListener('click', () => {
+    $('modalContent').innerHTML = `<h2>Clear All Dashboard Data</h2><p>Are you sure you want to clear all registration data from the dashboard? A complete backup will be exported and verified before any data is removed.</p><p class="muted" id="clearDataStatus" role="status"></p><div class="modal-foot"><button class="btn" type="button" data-close>Cancel</button><button class="btn primary" type="button" id="confirmClearData">Confirm &amp; Clear All Data</button></div>`;
+    $('modal').classList.remove('hidden');
+  });
+  document.addEventListener('click', async (event) => {
+    const confirmButton = event.target.closest('#confirmClearData');
+    if (!confirmButton) {
+      if (clearInProgress && event.target.closest('#modal')) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+      return;
+    }
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    clearInProgress = true;
+    confirmButton.disabled = true;
+    const cancelButton = $('modalContent').querySelector('[data-close]');
+    if (cancelButton) cancelButton.disabled = true;
+    const status = $('clearDataStatus');
+    const request = async (url, options = {}) => {
+      const response = await fetch(url, {
+        ...options,
+        headers: { Authorization: `Bearer ${state.token}`, ...(options.body ? { 'Content-Type': 'application/json' } : {}) },
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.message || 'Unable to prepare registration backup');
+      return body;
+    };
+    try {
+      status.textContent = 'Creating and verifying the complete backup…';
+      const backup = await request('/api/admin/registrations/backup', { method: 'POST' });
+      status.textContent = `${backup.backedUp} records verified. Preparing the Excel download…`;
+      const downloadResponse = await fetch(`/api/admin/registrations/backups/${encodeURIComponent(backup.backupId)}/download`, { headers: { Authorization: `Bearer ${state.token}` } });
+      if (!downloadResponse.ok) {
+        const body = await downloadResponse.json().catch(() => ({}));
+        throw new Error(body.message || 'Unable to prepare the Excel download');
+      }
+      const file = await downloadResponse.blob();
+      const signature = new Uint8Array(await file.slice(0, 4).arrayBuffer());
+      if (file.size < 4 || signature[0] !== 0x50 || signature[1] !== 0x4b || signature[2] !== 0x03 || signature[3] !== 0x04) {
+        throw new Error('The Excel backup download could not be verified. No data was cleared.');
+      }
+      const url = URL.createObjectURL(file);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = backup.filename;
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 60000);
+      status.textContent = 'Backup download prepared. Clearing the backed-up registrations…';
+      const result = await request('/api/admin/registrations/clear', {
+        method: 'POST',
+        body: JSON.stringify({ backupId: backup.backupId }),
+      });
+      state.registrations = [];
+      renderAll();
+      $('modal').classList.add('hidden');
+      clearInProgress = false;
+      await window.loadData();
+      notify(`${result.backedUp} records backed up; ${result.cleared} registrations cleared. File: ${result.filename}`);
+    } catch (error) {
+      clearInProgress = false;
+      status.textContent = error.message;
+      notify(error.message, true);
+      confirmButton.disabled = false;
+      if (cancelButton) cancelButton.disabled = false;
+    }
+  }, true);
   const registrationFilters = document.createElement('div');
   registrationFilters.className = 'toolbar';
   registrationFilters.id = 'registrationFilters';

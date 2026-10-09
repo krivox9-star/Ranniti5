@@ -3,8 +3,9 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import multer from 'multer';
 import ExcelJS from 'exceljs';
+import { GridFSBucket, ObjectId } from 'mongodb';
 import { v4 as uuidv4 } from 'uuid';
-import { collection } from '../config/database.js';
+import { collection, connectDatabase } from '../config/database.js';
 import { adminMiddleware, authMiddleware } from '../middleware/authMiddleware.js';
 import { createArtifacts, sendConfirmationEmail } from '../services/documents.js';
 import { calculatePackagePrice, packages } from '../../public/package-pricing.js';
@@ -77,7 +78,7 @@ router.post('/registrations', parseUpload(upload.fields([{ name: 'aadhaarCard', 
   const stayPartner2 = String(body.stayPartner2 || '').trim();
   const isTriple = packageName === 'Triple Occupancy';
   const isDouble = packageName === 'Double Occupancy';
-  const requiredFields = [body.mobile, body.region, body.chapter, body.city, body.dateOfBirth, body.hoodieSize, body.businessIntent, body.businessName, body.businessCategory, body.businessAddress];
+  const requiredFields = [body.mobile, body.region, body.chapter, body.city, body.hoodieSize, body.businessIntent, body.businessName, body.businessCategory, body.businessAddress];
   if (!['Male', 'Female'].includes(body.gender)) return res.status(400).json({ success: false, message: 'Select Male or Female for gender' });
   if (!name || !email || password.length < 8 || !packageName || !amount || requiredFields.some((value) => !String(value || '').trim())) {
     return res.status(400).json({ success: false, message: !packages[packageName] && packageName ? `Unknown package: ${packageName}` : 'Name, email, password (8+ characters) and package are required' });
@@ -93,7 +94,7 @@ router.post('/registrations', parseUpload(upload.fields([{ name: 'aadhaarCard', 
   const now = new Date().toISOString();
   const savedAttendeeNames = attendeeNames.length ? attendeeNames : [name];
   const guestName = body.guestName || attendeeNames.slice(1).join(', ');
-  const registration = { id, confirmation_token_hash: confirmationTokenHash(confirmationToken), full_name: name, email, mobile: body.mobile || '', company: body.company || '', business_name: String(body.businessName).trim(), business_category: String(body.businessCategory).trim(), business_address: String(body.businessAddress).trim(), information_confirmed: true, terms_accepted: true, guest_name: guestName, attendee_names: savedAttendeeNames, stay_partner_1: isTriple || isDouble ? stayPartner1 : '', stay_partner_2: isTriple ? stayPartner2 : '', region: body.region || '', chapter: body.chapter || '', gst_number: String(body.gstNumber || '').toUpperCase(), city: body.city || '', date_of_birth: body.dateOfBirth || '', hoodie_size: body.hoodieSize || '', business_intent: body.businessIntent || '', package_name: packageName, package_price: pricing.base, gst_amount: pricing.gstAmount, gst_percent: pricing.gstPercent, total_amount: amount, amount, status: 'Pending', registration_status: 'Pending', payment_status: 'Pending', admin_remark: '', created_at: now, updated_at: now };
+  const registration = { id, confirmation_token_hash: confirmationTokenHash(confirmationToken), full_name: name, email, mobile: body.mobile || '', company: body.company || '', business_name: String(body.businessName).trim(), business_category: String(body.businessCategory).trim(), business_address: String(body.businessAddress).trim(), information_confirmed: true, terms_accepted: true, guest_name: guestName, attendee_names: savedAttendeeNames, stay_partner_1: isTriple || isDouble ? stayPartner1 : '', stay_partner_2: isTriple ? stayPartner2 : '', region: body.region || '', chapter: body.chapter || '', gst_number: String(body.gstNumber || '').toUpperCase(), city: body.city || '', hoodie_size: body.hoodieSize || '', business_intent: body.businessIntent || '', package_name: packageName, package_price: pricing.base, gst_amount: pricing.gstAmount, gst_percent: pricing.gstPercent, total_amount: amount, amount, status: 'Pending', registration_status: 'Pending', payment_status: 'Pending', admin_remark: '', created_at: now, updated_at: now };
   registration.gender = body.gender;
   const registrations = await collection('registrations');
   const registrationDocuments = await collection('registration_documents');
@@ -437,6 +438,193 @@ router.get('/admin/checkins.csv', authMiddleware, adminMiddleware, async (req, r
   const rows = await (await collection('checkins')).find().sort({ checked_at: -1 }).toArray();
   const csv = ['Entry Pass Number,Registration ID,Member,Date,Time,Method,Checked By', ...rows.map((r) => { const date = new Date(r.checked_at); return [r.entry_pass_number, r.registration_id, r.member_name, date.toLocaleDateString('en-IN'), date.toLocaleTimeString('en-IN'), r.method, r.checked_by].map((v) => `"${String(v).replaceAll('"', '""')}"`).join(','); })].join('\n');
   res.type('text/csv').attachment('ranniti5-check-in-log.csv').send(csv);
+});
+
+const backupBucket = async () => new GridFSBucket(await connectDatabase(), { bucketName: 'registration_backups' });
+const sponsorshipCategory = (registration) => {
+  const knownCategories = ['Title Sponsor', 'Co-Sponsor', 'Partner Sponsor'];
+  const category = registration.sponsorship_category || registration.sponsor_category || registration.sponsorship_level || registration.category;
+  const knownCategory = knownCategories.find((item) => item.toLowerCase() === String(category || '').trim().toLowerCase());
+  if (knownCategory) return knownCategory;
+  const registrationType = String(registration.registration_type || registration.registrationType || registration.form_type || registration.type || '').toLowerCase();
+  return registrationType.includes('sponsor') ? String(category || registration.package_name || registration.package || 'Sponsorship') : '';
+};
+const backupRecord = (registration, payment, documents) => ({
+  ...registration,
+  backup_registration_id: registration.id || registration.registrationId || String(registration._id),
+  sponsorship_category: sponsorshipCategory(registration),
+  payment_status: payment.status || registration.payment_status || 'Pending',
+  payment_transaction_id: payment.transaction_id || registration.transaction_id || '',
+  payment_gateway: payment.gateway || '',
+  payment_amount: payment.amount ?? '',
+  payment_date: payment.payment_date || registration.payment_date || '',
+  payment_gateway_order_id: payment.gateway_order_id || '',
+  registration_documents: documents.map(({ type, filename, content_type, created_at }) => ({ type, filename, content_type, created_at })),
+});
+const backupCell = (value) => {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'number' || typeof value === 'boolean') return value;
+  const text = value instanceof Date ? value.toISOString() : typeof value === 'object' ? JSON.stringify(value) : String(value);
+  return /^[=+\-@]/.test(text) ? `'${text}` : text;
+};
+const sheetRegistrationIds = (sheet) => Array.from({ length: Math.max(sheet.rowCount - 1, 0) }, (_, index) => String(sheet.getCell(index + 2, 1).value || '')).filter(Boolean);
+const verifyBackupWorkbook = async (buffer, expectedIds, expectedCounts) => {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer);
+  const memberSheet = workbook.getWorksheet('Member Registrations');
+  const sponsorshipSheet = workbook.getWorksheet('Sponsorship Registrations');
+  if (!memberSheet || !sponsorshipSheet) throw new Error('Backup worksheets are missing');
+  const memberIds = sheetRegistrationIds(memberSheet);
+  const sponsorshipIds = sheetRegistrationIds(sponsorshipSheet);
+  const registrationIds = [...memberIds, ...sponsorshipIds];
+  if (new Set(registrationIds).size !== registrationIds.length) throw new Error('Backup contains duplicate registration IDs');
+  if (expectedIds) {
+    const expected = [...expectedIds].map(String).sort();
+    if (JSON.stringify([...registrationIds].sort()) !== JSON.stringify(expected)) throw new Error('Backup registration IDs do not match the selected records');
+  }
+  const counts = { member: memberIds.length, sponsorship: sponsorshipIds.length, total: registrationIds.length };
+  if (expectedCounts && (counts.total !== expectedCounts.total || counts.member !== expectedCounts.member || counts.sponsorship !== expectedCounts.sponsorship)) {
+    throw new Error('Backup record counts could not be verified');
+  }
+  return { ...counts, registrationIds };
+};
+const buildRegistrationBackup = async (registrations) => {
+  const ids = registrations.map((registration) => registration.id).filter(Boolean);
+  const [payments, documents] = await Promise.all([
+    (await collection('payments')).find({ registration_id: { $in: ids } }).toArray(),
+    (await collection('registration_documents')).find({ registration_id: { $in: ids } }, { projection: { registration_id: 1, type: 1, filename: 1, content_type: 1, created_at: 1, _id: 0 } }).toArray(),
+  ]);
+  const paymentById = new Map(payments.map((payment) => [payment.registration_id, payment]));
+  const documentsById = new Map();
+  documents.forEach((document) => documentsById.set(document.registration_id, [...(documentsById.get(document.registration_id) || []), document]));
+  const records = registrations.map((registration) => backupRecord(registration, paymentById.get(registration.id) || {}, documentsById.get(registration.id) || []));
+  const memberRecords = records.filter((record) => !record.sponsorship_category);
+  const sponsorshipRecords = records.filter((record) => record.sponsorship_category);
+  const fields = [...new Set(records.flatMap((record) => Object.keys(record).filter((key) => key !== '_id')))];
+  const workbook = new ExcelJS.Workbook();
+  for (const [name, rows] of [['Member Registrations', memberRecords], ['Sponsorship Registrations', sponsorshipRecords]]) {
+    const sheet = workbook.addWorksheet(name);
+    sheet.columns = [
+      { header: 'Registration ID', key: 'backup_registration_id', width: 24 },
+      ...fields.filter((key) => key !== 'backup_registration_id').map((key) => ({ header: key.replaceAll('_', ' '), key, width: Math.min(Math.max(key.length + 3, 18), 42) })),
+    ];
+    rows.forEach((record) => {
+      sheet.addRow(Object.fromEntries(sheet.columns.map(({ key }) => [key, backupCell(record[key])])))
+    });
+    sheet.getRow(1).font = { bold: true };
+    sheet.views = [{ state: 'frozen', ySplit: 1 }];
+  }
+  const buffer = Buffer.from(await workbook.xlsx.writeBuffer());
+  const expectedIds = registrations.map((registration) => registration.id).filter(Boolean);
+  const expectedCounts = { member: memberRecords.length, sponsorship: sponsorshipRecords.length, total: registrations.length };
+  await verifyBackupWorkbook(buffer, expectedIds, expectedCounts);
+  return { buffer, expectedIds, expectedCounts };
+};
+const readBackupFile = async (bucket, fileId) => {
+  const chunks = [];
+  for await (const chunk of bucket.openDownloadStream(fileId)) chunks.push(chunk);
+  return Buffer.concat(chunks);
+};
+const verifyBackupDigest = (buffer, expectedDigest) => {
+  const digest = crypto.createHash('sha256').update(buffer).digest('hex');
+  if (!expectedDigest || digest !== expectedDigest) throw new Error('Backup integrity verification failed');
+};
+
+router.post('/admin/registrations/backup', authMiddleware, adminMiddleware, async (req, res) => {
+  const registrations = await (await collection('registrations')).find().sort({ created_at: 1 }).toArray();
+  const { buffer, expectedIds, expectedCounts } = await buildRegistrationBackup(registrations);
+  const timestamp = new Date().toISOString().slice(0, 16).replace('T', '_').replaceAll(':', '-');
+  const filename = `Registration_Backup_${timestamp}.xlsx`;
+  const bucket = await backupBucket();
+  const upload = bucket.openUploadStream(filename, {
+    metadata: {
+      purpose: 'admin-registration-clear',
+      recordCount: expectedCounts.total,
+      memberCount: expectedCounts.member,
+      sponsorshipCount: expectedCounts.sponsorship,
+      sha256: crypto.createHash('sha256').update(buffer).digest('hex'),
+      createdBy: req.user.email,
+      createdAt: new Date().toISOString(),
+    },
+  });
+  try {
+    await new Promise((resolve, reject) => {
+      upload.once('error', reject);
+      upload.once('finish', resolve);
+      upload.end(buffer);
+    });
+    const saved = await bucket.find({ _id: upload.id }).next();
+    if (!saved) throw new Error('The backup file was not persisted');
+    const savedBuffer = await readBackupFile(bucket, upload.id);
+    verifyBackupDigest(savedBuffer, saved.metadata?.sha256);
+    const verified = await verifyBackupWorkbook(savedBuffer, expectedIds, expectedCounts);
+    return res.status(201).json({
+      success: true,
+      backupId: String(upload.id),
+      filename,
+      backedUp: verified.total,
+      memberRegistrations: verified.member,
+      sponsorshipRegistrations: verified.sponsorship,
+    });
+  } catch (error) {
+    await bucket.delete(upload.id).catch(() => {});
+    throw error;
+  }
+});
+
+router.get('/admin/registrations/backups/:backupId/download', authMiddleware, adminMiddleware, async (req, res) => {
+  if (!ObjectId.isValid(req.params.backupId)) return res.status(400).json({ success: false, message: 'Invalid backup ID' });
+  const bucket = await backupBucket();
+  const fileId = new ObjectId(req.params.backupId);
+  const file = await bucket.find({ _id: fileId }).next();
+  if (!file || file.metadata?.purpose !== 'admin-registration-clear') return res.status(404).json({ success: false, message: 'Backup not found' });
+  const buffer = await readBackupFile(bucket, fileId);
+  verifyBackupDigest(buffer, file.metadata.sha256);
+  await verifyBackupWorkbook(buffer, null, {
+    total: file.metadata.recordCount,
+    member: file.metadata.memberCount,
+    sponsorship: file.metadata.sponsorshipCount,
+  });
+  await (await collection('registration_backups.files')).updateOne({ _id: fileId }, { $set: { 'metadata.downloadPreparedAt': new Date().toISOString(), 'metadata.downloadPreparedBy': req.user.email } });
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Cache-Control', 'private, no-store');
+  return res.attachment(file.filename).send(buffer);
+});
+
+router.post('/admin/registrations/clear', authMiddleware, adminMiddleware, async (req, res) => {
+  if (!ObjectId.isValid(req.body?.backupId)) return res.status(400).json({ success: false, message: 'A verified backup is required' });
+  const bucket = await backupBucket();
+  const fileId = new ObjectId(req.body.backupId);
+  const file = await bucket.find({ _id: fileId }).next();
+  if (!file || file.metadata?.purpose !== 'admin-registration-clear') return res.status(404).json({ success: false, message: 'Verified backup not found' });
+  if (!file.metadata.downloadPreparedAt || file.metadata.downloadPreparedBy !== req.user.email) {
+    return res.status(409).json({ success: false, message: 'Download the verified backup before clearing registrations' });
+  }
+  const backupBuffer = await readBackupFile(bucket, fileId);
+  verifyBackupDigest(backupBuffer, file.metadata.sha256);
+  const verified = await verifyBackupWorkbook(backupBuffer, null, {
+    total: file.metadata.recordCount,
+    member: file.metadata.memberCount,
+    sponsorship: file.metadata.sponsorshipCount,
+  });
+  const registrations = await collection('registrations');
+  const currentRecords = verified.registrationIds.length
+    ? await registrations.find({ id: { $in: verified.registrationIds } }, { projection: { id: 1, _id: 0 } }).toArray()
+    : [];
+  if (currentRecords.length && currentRecords.length !== verified.total) {
+    return res.status(409).json({ success: false, message: 'Registration records changed after backup. Nothing was cleared; create a new backup and retry.' });
+  }
+  const deletion = currentRecords.length
+    ? await registrations.deleteMany({ id: { $in: verified.registrationIds } })
+    : { deletedCount: 0 };
+  if (deletion.deletedCount !== currentRecords.length) {
+    return res.status(409).json({ success: false, message: 'Not all backed-up registrations could be cleared. The verified backup remains available.' });
+  }
+  const remaining = verified.registrationIds.length
+    ? await registrations.countDocuments({ id: { $in: verified.registrationIds } })
+    : 0;
+  if (remaining) return res.status(500).json({ success: false, message: 'Some backed-up registrations remain. The verified backup is retained.' });
+  return res.json({ success: true, backupId: String(fileId), filename: file.filename, backedUp: verified.total, cleared: deletion.deletedCount });
 });
 
 export default router;
