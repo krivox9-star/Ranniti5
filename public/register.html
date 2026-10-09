@@ -84,7 +84,13 @@
       .consent { display: flex; align-items: flex-start; gap: 10px; color: var(--muted); font-size: .9rem; line-height: 1.45; }
       .consent input { width: 17px; height: 17px; flex: 0 0 auto; margin-top: 2px; accent-color: var(--accent); }
       .button { width: 100%; min-height: 50px; margin-top: 24px; border: 0; border-radius: 10px; color: #fff; background: linear-gradient(135deg, var(--accent), #d93f2e); font: 700 1rem "Barlow", sans-serif; cursor: pointer; box-shadow: 0 15px 35px rgba(240,75,53,.2); }
+      .button:disabled { opacity: .65; cursor: wait; }
       .success { display: none; margin-top: 16px; padding: 13px 15px; border: 1px solid rgba(34,197,94,.28); border-radius: 10px; color: #b8f7cd; background: rgba(34,197,94,.12); }
+      .submission-loading { display: flex; align-items: center; gap: 11px; margin-top: 16px; color: var(--muted); line-height: 1.4; }
+      .submission-loading[hidden] { display: none; }
+      .submission-spinner { width: 20px; height: 20px; flex: 0 0 auto; border: 2px solid rgba(247,165,92,.28); border-top-color: var(--accent-2); border-radius: 50%; animation: submission-spin .8s linear infinite; }
+      @keyframes submission-spin { to { transform: rotate(360deg); } }
+      @media (prefers-reduced-motion: reduce) { .submission-spinner { animation-duration: 2s; } }
       .payment-step { display: none; margin-top: 24px; padding: clamp(22px, 4vw, 34px); border: 1px solid rgba(247,165,92,.28); border-radius: 22px; background: rgba(28,22,20,.96); }
       .payment-step.visible { display: block; }
       .payment-step h2 { margin-top: 8px; font-size: clamp(2rem, 5vw, 3rem); }
@@ -196,6 +202,7 @@
             <label class="consent"><input type="checkbox" name="termsAccepted" value="true" required /> <span>I agree to the RANNITI 5 event terms and conditions, including accommodation and cancellation policies.</span></label>
           </div>
           <button class="button" type="submit">Confirm Registration</button>
+          <div class="submission-loading" id="registrationLoading" role="status" aria-live="polite" hidden><span class="submission-spinner" aria-hidden="true"></span><span>Submitting your registration, please wait…</span></div>
           <div class="success" id="formSuccess" role="status">Details confirmed. Complete the manual payment below.</div>
         </form>
 
@@ -287,7 +294,7 @@
         const block = document.getElementById('stayPartnerBlock');
         const grid = document.getElementById('stayPartnerGrid');
         block.hidden = !labels.length;
-        grid.innerHTML = labels.map((label, index) => `<div class="field"><label for="stayPartner${index + 1}">${label}</label><input id="stayPartner${index + 1}" name="stayPartner${index + 1}" data-stay-partner="${index}" required autocomplete="name" value="${escapeAttr(stayPartnerValues[index])}" /></div>`).join('');
+        grid.innerHTML = labels.map((label, index) => `<div class="field"><label for="stayPartner${index + 1}">${label} <span>(Optional)</span></label><input id="stayPartner${index + 1}" name="stayPartner${index + 1}" data-stay-partner="${index}" autocomplete="name" value="${escapeAttr(stayPartnerValues[index])}" /></div>`).join('');
         if (labels.length) document.getElementById('stayPartnerRule').textContent = 'Enter the full name of every preferred stay partner.';
       }
 
@@ -378,18 +385,43 @@
         document.getElementById('removeProfessionalPhoto').hidden = false;
       });
       document.getElementById('removeProfessionalPhoto').addEventListener('click', clearProfessionalPhoto);
+      let registrationSubmitting = false;
       document.getElementById('registrationForm').addEventListener('submit', async (event) => {
         event.preventDefault();
+        if (registrationSubmitting) return;
+        registrationSubmitting = true;
+        const form = event.currentTarget;
+        const submitButton = form.querySelector('button[type="submit"]');
+        const registrationLoading = document.getElementById('registrationLoading');
         const formSuccess = document.getElementById('formSuccess');
+        submitButton.disabled = true;
+        form.setAttribute('aria-busy', 'true');
+        registrationLoading.hidden = false;
+        formSuccess.style.display = 'none';
         try {
-          const response = await fetch('/api/registrations', { method: 'POST', body: new FormData(event.currentTarget) });
-          const body = await response.json();
-          if (!response.ok) throw new Error(body.message || 'Unable to create registration');
+          const response = await fetch('/api/registrations', { method: 'POST', body: new FormData(form) });
+          const responseText = await response.text();
+          let body = {};
+          try { body = responseText ? JSON.parse(responseText) : {}; } catch {}
+          if (!response.ok) throw new Error(body.message || 'Registration could not be submitted. Your details are still here; please try again.');
+          if (!body.registration?.id) throw new Error('The server did not confirm the registration. Your details are still here; please try again.');
           registrationId = body.registration.id;
           sessionStorage.setItem('ranniti_registration_token', body.registration.confirmationToken);
-          window.location.href = '/payment?registrationId=' + encodeURIComponent(registrationId) + '&package=' + encodeURIComponent(packageSelect.value);
+          registrationLoading.hidden = true;
+          form.removeAttribute('aria-busy');
+          formSuccess.textContent = 'Details confirmed. Complete the manual payment below.';
+          formSuccess.style.display = 'block';
+          window.setTimeout(() => {
+            window.location.href = '/payment?registrationId=' + encodeURIComponent(registrationId) + '&package=' + encodeURIComponent(packageSelect.value);
+          }, 900);
         } catch (error) {
-          formSuccess.textContent = error.message;
+          registrationSubmitting = false;
+          submitButton.disabled = false;
+          registrationLoading.hidden = true;
+          form.removeAttribute('aria-busy');
+          formSuccess.textContent = error instanceof TypeError
+            ? 'Unable to reach the server. Check your connection and retry; your details are still here.'
+            : error.message;
           formSuccess.style.display = 'block';
         }
       });

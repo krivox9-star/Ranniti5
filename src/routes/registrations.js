@@ -88,7 +88,6 @@ router.post('/registrations', parseUpload(upload.fields([{ name: 'aadhaarCard', 
   if (packageName.startsWith('Family + ') && attendeeNames.length < 3) return res.status(400).json({ success: false, message: 'Three attendee names are required for the selected family package' });
   if (!aadhaarCard || !validDocument(aadhaarCard)) return res.status(400).json({ success: false, message: 'A valid Aadhaar Card PDF, JPG, JPEG or PNG (up to 5 MB) is required' });
   if (!professionalPhoto || !validProfessionalPhoto(professionalPhoto)) return res.status(400).json({ success: false, message: 'A valid professional photo in JPG, JPEG, PNG or WEBP format (up to 5 MB) is required' });
-  if ((isTriple && (!stayPartner1 || !stayPartner2)) || (isDouble && !stayPartner1)) return res.status(400).json({ success: false, message: 'Required stay partner names are missing' });
   const id = `RN5-REG-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
   const confirmationToken = crypto.randomBytes(32).toString('hex');
   const now = new Date().toISOString();
@@ -96,24 +95,31 @@ router.post('/registrations', parseUpload(upload.fields([{ name: 'aadhaarCard', 
   const guestName = body.guestName || attendeeNames.slice(1).join(', ');
   const registration = { id, confirmation_token_hash: confirmationTokenHash(confirmationToken), full_name: name, email, mobile: body.mobile || '', company: body.company || '', business_name: String(body.businessName).trim(), business_category: String(body.businessCategory).trim(), business_address: String(body.businessAddress).trim(), information_confirmed: true, terms_accepted: true, guest_name: guestName, attendee_names: savedAttendeeNames, stay_partner_1: isTriple || isDouble ? stayPartner1 : '', stay_partner_2: isTriple ? stayPartner2 : '', region: body.region || '', chapter: body.chapter || '', gst_number: String(body.gstNumber || '').toUpperCase(), city: body.city || '', hoodie_size: body.hoodieSize || '', business_intent: body.businessIntent || '', package_name: packageName, package_price: pricing.base, gst_amount: pricing.gstAmount, gst_percent: pricing.gstPercent, total_amount: amount, amount, status: 'Pending', registration_status: 'Pending', payment_status: 'Pending', admin_remark: '', created_at: now, updated_at: now };
   registration.gender = body.gender;
-  const registrations = await collection('registrations');
-  const registrationDocuments = await collection('registration_documents');
-  await registrations.insertOne(registration);
-  try {
-    const photoExtension = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }[professionalPhoto.mimetype];
-    await registrationDocuments.insertMany([
-      { id: uuidv4(), registration_id: id, type: 'aadhaar', filename: aadhaarCard.originalname, content_type: aadhaarCard.mimetype, ...encryptDocument(aadhaarCard.buffer), created_at: now },
-      { id: uuidv4(), registration_id: id, type: 'professional-photo', filename: `professional-photo-${id}.${photoExtension}`, content_type: professionalPhoto.mimetype, ...encryptDocument(professionalPhoto.buffer), created_at: now },
-    ]);
-  } catch (error) {
-    await registrationDocuments.deleteMany({ registration_id: id });
-    await registrations.deleteOne({ id });
-    throw error;
-  }
-  const users = await collection('users');
+  const [registrations, registrationDocuments, users] = await Promise.all([
+    collection('registrations'),
+    collection('registration_documents'),
+    collection('users'),
+  ]);
   const adminEmail = String(process.env.ADMIN_EMAIL || '').trim().toLowerCase();
   const role = adminEmail && email === adminEmail ? 'admin' : 'user';
-  const existing = await users.findOne({ email });
+  const photoExtension = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }[professionalPhoto.mimetype];
+  const registrationOperations = await Promise.allSettled([
+    registrations.insertOne(registration),
+    registrationDocuments.insertMany([
+      { id: uuidv4(), registration_id: id, type: 'aadhaar', filename: aadhaarCard.originalname, content_type: aadhaarCard.mimetype, ...encryptDocument(aadhaarCard.buffer), created_at: now },
+      { id: uuidv4(), registration_id: id, type: 'professional-photo', filename: `professional-photo-${id}.${photoExtension}`, content_type: professionalPhoto.mimetype, ...encryptDocument(professionalPhoto.buffer), created_at: now },
+    ]),
+    users.findOne({ email }),
+  ]);
+  const failedOperation = registrationOperations.find((operation) => operation.status === 'rejected');
+  if (failedOperation) {
+    await Promise.allSettled([
+      registrationDocuments.deleteMany({ registration_id: id }),
+      registrations.deleteOne({ id }),
+    ]);
+    throw failedOperation.reason;
+  }
+  const existing = registrationOperations[2].value;
   let accountCreated = false;
   if (!existing) {
     await users.insertOne({ id: uuidv4(), name, username: email, email, password_hash: await bcrypt.hash(password, 12), role, created_at: now, updated_at: now });
