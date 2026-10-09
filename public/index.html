@@ -694,7 +694,6 @@
                 <span class="currency">₹</span>
                 <span class="total"></span>
               </div>
-              <div class="price-breakdown"></div>
               <p>Group sharing with all meals and event access.</p>
               <a class="select-btn package-select" href="/register?package=Triple%20Occupancy">Select Category</a>
             </article>
@@ -705,7 +704,6 @@
                 <span class="currency">₹</span>
                 <span class="total"></span>
               </div>
-              <div class="price-breakdown"></div>
               <p>Shared luxury tent/room with all meals and event access.</p>
               <a class="select-btn package-select" href="/register?package=Double%20Occupancy">Select Category</a>
             </article>
@@ -716,7 +714,6 @@
                 <span class="currency">₹</span>
                 <span class="total"></span>
               </div>
-              <div class="price-breakdown"></div>
               <p>Family accommodation with all meals and event access.</p>
               <a class="select-btn package-select" href="/register?package=Family%20%2B%20Double%20Occupancy">Select Category</a>
             </article>
@@ -727,7 +724,6 @@
                 <span class="currency">₹</span>
                 <span class="total"></span>
               </div>
-              <div class="price-breakdown"></div>
               <p>Family accommodation with all meals and event access.</p>
               <a class="select-btn package-select" href="/register?package=Family%20%2B%20Triple%20Occupancy">Select Category</a>
             </article>
@@ -735,7 +731,6 @@
           <div class="package-includes">
             <h3>✨ Package Includes</h3>
             <p><strong>Accommodation &bull; All Meals &bull; Event Access</strong></p>
-            <p><em>Package prices include 18% GST.</em></p>
           </div>
         </div>
       </section>
@@ -782,8 +777,7 @@
 
       document.querySelectorAll('.package-card[data-package]').forEach((card) => {
         const pricing = packages[card.dataset.package];
-        card.querySelector('.total').textContent = formatRupees(pricing.total);
-        card.querySelector('.price-breakdown').textContent = `₹${formatRupees(pricing.base)} + ${pricing.gstPercent}% GST = ₹${formatRupees(pricing.total)}`;
+        card.querySelector('.total').textContent = formatRupees(pricing.base, 0);
       });
     </script>
     <script>

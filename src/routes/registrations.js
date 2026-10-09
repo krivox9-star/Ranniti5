@@ -7,7 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { collection } from '../config/database.js';
 import { adminMiddleware, authMiddleware } from '../middleware/authMiddleware.js';
 import { createArtifacts, sendConfirmationEmail } from '../services/documents.js';
-import { packages } from '../../public/package-pricing.js';
+import { calculatePackagePrice, packages } from '../../public/package-pricing.js';
 
 const router = express.Router();
 const documentEncryptionKey = crypto.createHash('sha256').update(process.env.DOCUMENT_ENCRYPTION_KEY || process.env.JWT_SECRET || 'ranniti-dev-secret').digest();
@@ -62,7 +62,8 @@ const publicRegistration = (r) => { const { confirmation_token_hash, ...safeRegi
 router.post('/registrations', parseUpload(upload.fields([{ name: 'aadhaarCard', maxCount: 1 }, { name: 'professionalPhoto', maxCount: 1 }])), requireDocumentKey, async (req, res) => {
   const body = req.body || {};
   const packageName = String(body.package || '').trim();
-  const pricing = packages[packageName];
+  const packageConfig = packages[packageName];
+  const pricing = packageConfig ? calculatePackagePrice(packageConfig) : null;
   const amount = pricing?.total;
   const name = String(body.fullName || body.name || '').trim();
   const email = String(body.email || '').trim().toLowerCase();
@@ -92,7 +93,7 @@ router.post('/registrations', parseUpload(upload.fields([{ name: 'aadhaarCard', 
   const now = new Date().toISOString();
   const savedAttendeeNames = attendeeNames.length ? attendeeNames : [name];
   const guestName = body.guestName || attendeeNames.slice(1).join(', ');
-  const registration = { id, confirmation_token_hash: confirmationTokenHash(confirmationToken), full_name: name, email, mobile: body.mobile || '', company: body.company || '', business_name: String(body.businessName).trim(), business_category: String(body.businessCategory).trim(), business_address: String(body.businessAddress).trim(), information_confirmed: true, terms_accepted: true, guest_name: guestName, attendee_names: savedAttendeeNames, stay_partner_1: isTriple || isDouble ? stayPartner1 : '', stay_partner_2: isTriple ? stayPartner2 : '', region: body.region || '', chapter: body.chapter || '', gst_number: String(body.gstNumber || '').toUpperCase(), city: body.city || '', date_of_birth: body.dateOfBirth || '', hoodie_size: body.hoodieSize || '', business_intent: body.businessIntent || '', package_name: packageName, package_price: pricing.base, gst_amount: amount - pricing.base, gst_percent: pricing.gstPercent, total_amount: amount, amount, status: 'Pending', registration_status: 'Pending', payment_status: 'Pending', admin_remark: '', created_at: now, updated_at: now };
+  const registration = { id, confirmation_token_hash: confirmationTokenHash(confirmationToken), full_name: name, email, mobile: body.mobile || '', company: body.company || '', business_name: String(body.businessName).trim(), business_category: String(body.businessCategory).trim(), business_address: String(body.businessAddress).trim(), information_confirmed: true, terms_accepted: true, guest_name: guestName, attendee_names: savedAttendeeNames, stay_partner_1: isTriple || isDouble ? stayPartner1 : '', stay_partner_2: isTriple ? stayPartner2 : '', region: body.region || '', chapter: body.chapter || '', gst_number: String(body.gstNumber || '').toUpperCase(), city: body.city || '', date_of_birth: body.dateOfBirth || '', hoodie_size: body.hoodieSize || '', business_intent: body.businessIntent || '', package_name: packageName, package_price: pricing.base, gst_amount: pricing.gstAmount, gst_percent: pricing.gstPercent, total_amount: amount, amount, status: 'Pending', registration_status: 'Pending', payment_status: 'Pending', admin_remark: '', created_at: now, updated_at: now };
   registration.gender = body.gender;
   const registrations = await collection('registrations');
   const registrationDocuments = await collection('registration_documents');
@@ -134,9 +135,10 @@ router.get('/registrations/:registrationId/payment-details', async (req, res) =>
   if (!registration || registration.confirmation_token_hash !== confirmationTokenHash(req.get('x-registration-token'))) {
     return res.status(404).json({ success: false, message: 'Registration not found' });
   }
-  const pricing = packages[registration.package_name];
-  if (!pricing) return res.status(400).json({ success: false, message: 'Package pricing is unavailable' });
-  return res.json({ success: true, registration: { package: registration.package_name, amount: pricing.total } });
+  const packageConfig = packages[registration.package_name];
+  if (!packageConfig) return res.status(400).json({ success: false, message: 'Package pricing is unavailable' });
+  const pricing = calculatePackagePrice(packageConfig);
+  return res.json({ success: true, registration: { package: registration.package_name, baseAmount: pricing.base, gstPercent: pricing.gstPercent, gstAmount: pricing.gstAmount, totalAmount: pricing.total } });
 });
 
 router.get('/member/dashboard', authMiddleware, async (req, res) => {
@@ -163,11 +165,12 @@ router.post('/payments/manual', parseUpload(upload.single('paymentProof')), requ
   const registration = await (await collection('registrations')).findOne({ id: registrationId });
   if (registration && registration.confirmation_token_hash !== confirmationTokenHash(req.get('x-registration-token'))) return res.status(403).json({ success: false, message: 'Registration session is invalid. Please register again.' });
   if (!registration || !transactionId || !req.file || !validDocument(req.file)) return res.status(400).json({ success: false, message: 'Registration ID, transaction ID and a valid payment proof (PDF, JPG, JPEG or PNG up to 5 MB) are required' });
-  const amount = packages[registration.package_name]?.total;
-  if (!amount) return res.status(400).json({ success: false, message: 'Package pricing is unavailable' });
+  const packageConfig = packages[registration.package_name];
+  if (!packageConfig) return res.status(400).json({ success: false, message: 'Package pricing is unavailable' });
+  const pricing = calculatePackagePrice(packageConfig);
   const now = new Date().toISOString();
   await (await collection('registration_documents')).updateOne({ registration_id: registrationId, type: 'payment-proof' }, { $set: { id: uuidv4(), registration_id: registrationId, type: 'payment-proof', filename: req.file.originalname, content_type: req.file.mimetype, ...encryptDocument(req.file.buffer), created_at: now } }, { upsert: true });
-  await (await collection('payments')).updateOne({ registration_id: registrationId }, { $set: { id: uuidv4(), registration_id: registrationId, transaction_id: transactionId.trim(), amount, status: 'Payment Proof Uploaded', gateway: 'manual', payment_date: now, updated_at: now }, $setOnInsert: { created_at: now } }, { upsert: true });
+  await (await collection('payments')).updateOne({ registration_id: registrationId }, { $set: { id: uuidv4(), registration_id: registrationId, transaction_id: transactionId.trim(), amount: pricing.total, status: 'Payment Proof Uploaded', gateway: 'manual', payment_date: now, updated_at: now }, $setOnInsert: { created_at: now } }, { upsert: true });
   await (await collection('registrations')).updateOne({ id: registrationId }, { $set: { payment_status: 'Payment Proof Uploaded', transaction_id: transactionId.trim(), payment_date: now, updated_at: now } });
   return res.json({ success: true, status: 'Payment Proof Uploaded', registrationId });
 });
@@ -175,15 +178,16 @@ router.post('/payments/manual', parseUpload(upload.single('paymentProof')), requ
 router.post('/payments/order', async (req, res) => {
   const registration = await (await collection('registrations')).findOne({ id: req.body?.registrationId });
   if (!registration) return res.status(404).json({ success: false, message: 'Registration not found' });
-  const amount = packages[registration.package_name]?.total;
-  if (!amount) return res.status(400).json({ success: false, message: 'Package pricing is unavailable' });
+  const packageConfig = packages[registration.package_name];
+  if (!packageConfig) return res.status(400).json({ success: false, message: 'Package pricing is unavailable' });
+  const pricing = calculatePackagePrice(packageConfig);
   if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) return res.status(503).json({ success: false, message: 'Razorpay is not configured. Use manual payment until gateway keys are set.' });
   const auth = Buffer.from(`${process.env.RAZORPAY_KEY_ID}:${process.env.RAZORPAY_KEY_SECRET}`).toString('base64');
-  const response = await fetch('https://api.razorpay.com/v1/orders', { method: 'POST', headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: amount * 100, currency: 'INR', receipt: registration.id }) });
+  const response = await fetch('https://api.razorpay.com/v1/orders', { method: 'POST', headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: pricing.totalPaise, currency: 'INR', receipt: registration.id }) });
   const order = await response.json();
   if (!response.ok) return res.status(502).json({ success: false, message: order.error?.description || 'Unable to create payment order' });
   const now = new Date().toISOString();
-  await (await collection('payments')).updateOne({ registration_id: registration.id }, { $set: { id: uuidv4(), registration_id: registration.id, amount, status: 'Pending', gateway: 'razorpay', gateway_order_id: order.id, updated_at: now }, $setOnInsert: { created_at: now } }, { upsert: true });
+  await (await collection('payments')).updateOne({ registration_id: registration.id }, { $set: { id: uuidv4(), registration_id: registration.id, amount: pricing.total, status: 'Pending', gateway: 'razorpay', gateway_order_id: order.id, updated_at: now }, $setOnInsert: { created_at: now } }, { upsert: true });
   return res.json({ success: true, keyId: process.env.RAZORPAY_KEY_ID, order, registrationId: registration.id });
 });
 
@@ -312,12 +316,12 @@ router.patch('/admin/registrations/:registrationId', authMiddleware, adminMiddle
   if (updates.package_name) {
     const pricing = packages[updates.package_name];
     if (!pricing) return res.status(400).json({ success: false, message: 'Unknown package' });
-    const amount = pricing.total;
+    const calculated = calculatePackagePrice(pricing);
     updates.package_price = pricing.base;
-    updates.gst_amount = amount - pricing.base;
+    updates.gst_amount = calculated.gstAmount;
     updates.gst_percent = pricing.gstPercent;
-    updates.total_amount = amount;
-    updates.amount = amount;
+    updates.total_amount = calculated.total;
+    updates.amount = calculated.total;
   }
   const packageName = updates.package_name || current.package_name;
   const partner1 = updates.stay_partner_1 ?? current.stay_partner_1;

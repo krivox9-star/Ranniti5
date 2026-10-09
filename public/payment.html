@@ -33,6 +33,10 @@
       .selected { padding-bottom:22px; border-bottom:1px solid var(--line); }
       .selected small { color:var(--muted); }
       .selected h2 { margin-top:7px; font-size:2rem; }
+      .price-lines { display:grid; gap:8px; max-width:420px; margin-top:18px; }
+      .price-lines div { display:flex; justify-content:space-between; gap:18px; color:var(--muted); }
+      .price-lines strong { color:var(--text); }
+      .total-label { margin:18px 0 0; color:var(--muted); font-weight:700; }
       .amount { margin-top:12px; color:var(--accent-2); font:3.6rem/.9 "Bebas Neue",sans-serif; }
       .payment-grid { display:grid; grid-template-columns:220px minmax(0,1fr); gap:30px; margin-top:28px; align-items:start; }
       .qr { display:grid; place-items:center; padding:12px; border-radius:14px; background:#fff; }
@@ -63,7 +67,7 @@
     <main>
       <div class="intro"><span class="kicker">Step 2 · Manual payment</span><h1>Complete Your Payment</h1><p>Pay the exact amount below, then submit your transaction details for verification.</p></div>
       <section class="payment-card">
-        <div class="selected"><small>Total amount payable</small><h2 id="packageName">Loading package...</h2><div class="amount" id="paymentAmount">₹—</div></div>
+        <div class="selected"><small>Selected package</small><h2 id="packageName">Loading package...</h2><div class="price-lines"><div><span>Base Amount</span><strong id="baseAmount">—</strong></div><div><span id="gstLabel">GST (18%)</span><strong id="gstAmount">—</strong></div></div><p class="total-label">Total Payable</p><div class="amount" id="paymentAmount">₹—</div></div>
         <div class="payment-grid"><div class="qr"><img id="paymentQr" alt="UPI payment QR code" /></div><div class="copy"><p>Scan this QR code with any UPI app or pay directly to:</p><span class="upi">munjalshah9@okicici</span><p>After payment, enter your UTR ID and attach a screenshot or receipt as proof.</p></div></div>
         <div class="bank"><h3>Bank details</h3><p><strong>Imperial Innoventures</strong><br />Account No.: <strong>0114137470</strong><br />Kotak Mahindra Bank<br />Gandhidham Branch<br />IFSC: <strong>KKBK0000822</strong><br />GST NUMBER: <strong>24ADSPV9796P1ZW</strong></p></div>
         <form id="paymentForm"><div class="fields"><div class="field"><label for="utrId">UTR ID</label><input id="utrId" name="transactionId" required placeholder="Enter your UTR / transaction ID" /></div><div class="field"><label for="paymentProof">Upload Payment Proof</label><div class="file-control"><input id="paymentProof" name="paymentProof" type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" required /><span class="file-name" id="paymentFileName">PDF, JPG, JPEG or PNG · Max 5 MB</span><button class="remove-file" id="removePaymentProof" type="button" hidden>Remove</button></div></div></div><button class="button" type="submit">Submit Payment Details</button><div class="success" id="paymentSuccess" role="status">Payment details submitted successfully. Your payment is pending verification.</div></form>
@@ -85,10 +89,13 @@
         });
         const body = await response.json();
         if (!response.ok) throw new Error(body.message || 'Unable to load payment details');
-        const { package: packageName, amount } = body.registration;
+        const { package: packageName, baseAmount, gstPercent, gstAmount, totalAmount } = body.registration;
         document.getElementById('packageName').textContent = packageName;
-        document.getElementById('paymentAmount').textContent = '₹' + formatRupees(amount);
-        document.getElementById('paymentQr').src = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + encodeURIComponent(`upi://pay?pa=munjalshah9@okicici&pn=Imperial%20Innoventures&am=${amount}&cu=INR`);
+        document.getElementById('baseAmount').textContent = '₹' + formatRupees(baseAmount);
+        document.getElementById('gstLabel').textContent = `GST (${gstPercent}%)`;
+        document.getElementById('gstAmount').textContent = '₹' + formatRupees(gstAmount);
+        document.getElementById('paymentAmount').textContent = '₹' + formatRupees(totalAmount);
+        document.getElementById('paymentQr').src = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + encodeURIComponent(`upi://pay?pa=munjalshah9@okicici&pn=Imperial%20Innoventures&am=${totalAmount}&cu=INR`);
         submitButton.disabled = false;
       } catch (error) {
         document.getElementById('packageName').textContent = 'Payment details unavailable';
