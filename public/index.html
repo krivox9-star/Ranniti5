@@ -687,55 +687,55 @@
           </div>
 
           <div class="package-grid">
-            <article class="package-card recommended">
+            <article class="package-card recommended" data-package="Triple Occupancy">
               <span class="pkg-badge">Recommended</span>
               <h3>Triple Occupancy</h3>
               <div class="price">
                 <span class="currency">₹</span>
-                <span class="total">14,999.00</span>
+                <span class="total"></span>
               </div>
-              <div class="price-breakdown"><span>₹14,999.00 + 18% GST</span></div>
+              <div class="price-breakdown"></div>
               <p>Group sharing with all meals and event access.</p>
               <a class="select-btn package-select" href="/register?package=Triple%20Occupancy">Select Category</a>
             </article>
 
-            <article class="package-card">
+            <article class="package-card" data-package="Double Occupancy">
               <h3>Double Occupancy</h3>
               <div class="price">
                 <span class="currency">₹</span>
-                <span class="total">17,499.00</span>
+                <span class="total"></span>
               </div>
-              <div class="price-breakdown"><span>₹17,499.00 + 18% GST</span></div>
+              <div class="price-breakdown"></div>
               <p>Shared luxury tent/room with all meals and event access.</p>
               <a class="select-btn package-select" href="/register?package=Double%20Occupancy">Select Category</a>
             </article>
 
-            <article class="package-card">
-              <h3>Member + Spouse + Kid (Up to 5 Years)</h3>
+            <article class="package-card" data-package="Family + Double Occupancy">
+              <h3>Family + Double Occupancy</h3>
               <div class="price">
                 <span class="currency">₹</span>
-                <span class="total">25,500.00</span>
+                <span class="total"></span>
               </div>
-              <div class="price-breakdown"><span>₹25,500.00 + 18% GST</span></div>
-              <p>Stay for 1 member, 1 spouse and 1 child up to 5 years.</p>
-              <a class="select-btn package-select" href="/register?package=1%20Member%20%2B%201%20Spouse%20%2B%201%20Kid%20%28Up%20to%205%20years%29">Select Category</a>
+              <div class="price-breakdown"></div>
+              <p>Family accommodation with all meals and event access.</p>
+              <a class="select-btn package-select" href="/register?package=Family%20%2B%20Double%20Occupancy">Select Category</a>
             </article>
 
-            <article class="package-card">
-              <h3>Member + Spouse + Kid (Above 5 Years)</h3>
+            <article class="package-card" data-package="Family + Triple Occupancy">
+              <h3>Family + Triple Occupancy</h3>
               <div class="price">
                 <span class="currency">₹</span>
-                <span class="total">29,500.00</span>
+                <span class="total"></span>
               </div>
-              <div class="price-breakdown"><span>₹29,500.00 + 18% GST</span></div>
-              <p>Stay for 1 member, 1 spouse and 1 child above 5 years.</p>
-              <a class="select-btn package-select" href="/register?package=1%20Member%20%2B%201%20Spouse%20%2B%201%20Kid%20%28Above%205%20years%29">Select Category</a>
+              <div class="price-breakdown"></div>
+              <p>Family accommodation with all meals and event access.</p>
+              <a class="select-btn package-select" href="/register?package=Family%20%2B%20Triple%20Occupancy">Select Category</a>
             </article>
           </div>
           <div class="package-includes">
             <h3>✨ Package Includes</h3>
             <p><strong>Accommodation &bull; All Meals &bull; Event Access</strong></p>
-            <p><em>GST will be charged additionally at 18% on the package price.</em></p>
+            <p><em>Package prices include 18% GST.</em></p>
           </div>
         </div>
       </section>
@@ -777,6 +777,15 @@
         </div>
       </div>
     </footer>
+    <script type="module">
+      import { packages, formatRupees } from '/package-pricing.js';
+
+      document.querySelectorAll('.package-card[data-package]').forEach((card) => {
+        const pricing = packages[card.dataset.package];
+        card.querySelector('.total').textContent = formatRupees(pricing.total);
+        card.querySelector('.price-breakdown').textContent = `₹${formatRupees(pricing.base)} + ${pricing.gstPercent}% GST = ₹${formatRupees(pricing.total)}`;
+      });
+    </script>
     <script>
       const eventDate = new Date('2026-12-18T00:00:00+05:30').getTime();
       const countdownFields = {

@@ -1,12 +1,6 @@
+import { packages } from '/package-pricing.js';
+
 (() => {
-  const packagePrices = {
-    'Triple Occupancy': 17698.82,
-    'Double Occupancy': 20648.82,
-    '1 Member + 1 Spouse + 1 Kid (Up to 5 years)': 30090,
-    '1 Member + 1 Family Member + 1 Kid (Up to 5 years)': 30090,
-    '1 Member + 1 Spouse + 1 Kid (Above 5 years)': 34810,
-    '1 Member + 1 Family Member + 1 Kid (Above 5 years)': 34810,
-  };
   const canonicalPaymentStatus = (registration) => {
     const status = registration.payment_status || registration.paymentStatus || registration.payment?.status || 'Pending';
     return status === 'Received' ? 'Payment Proof Uploaded' : status === 'Confirmed' ? 'Verified' : status;
@@ -49,7 +43,7 @@
     <select id="filterGender" aria-label="Filter by gender"><option value="">All genders</option><option>Male</option><option>Female</option></select>
     <input id="filterChapter" placeholder="Chapter" aria-label="Filter by chapter" />
     <select id="filterMemberType" aria-label="Filter by member or guest"><option value="">Members and guests</option><option>Member</option><option>Guest</option></select>
-    <select id="filterPackage" aria-label="Filter by package"><option value="">All packages</option>${Object.keys(packagePrices).map((name) => `<option value="${esc(name)}">${esc(name)}</option>`).join('')}</select>
+    <select id="filterPackage" aria-label="Filter by package"><option value="">All packages</option>${Object.keys(packages).map((name) => `<option value="${esc(name)}">${esc(name)}</option>`).join('')}</select>
     <select id="filterPaymentStatus" aria-label="Filter by payment status"><option value="">All payment statuses</option><option>Pending</option><option>Payment Proof Uploaded</option><option>Verified</option><option>Rejected</option></select>
     <select id="filterRegistrationStatus" aria-label="Filter by registration status"><option value="">All registration statuses</option><option>Pending</option><option>Verified</option><option>Approved</option><option>Rejected</option></select>
     <input id="filterDate" type="date" aria-label="Filter by registration date" />
@@ -240,7 +234,7 @@
           if (key === 'gender') return `<label>${esc(label)}<select name="gender"><option value="">Not provided</option><option value="Male" ${value === 'Male' ? 'selected' : ''}>Male</option><option value="Female" ${value === 'Female' ? 'selected' : ''}>Female</option></select></label>`;
           return `<label>${esc(label)}<input name="${key}" value="${esc(value)}" /></label>`;
 
-        }).join('')}<label>Package<select name="package_name">${Object.keys(packagePrices).map((name) => `<option value="${esc(name)}" ${name === registration.package_name ? 'selected' : ''}>${esc(name)}</option>`).join('')}</select></label></div><div class="modal-foot"><button type="button" class="btn" data-managed-back="${esc(id)}">Cancel</button><button class="btn primary">Save changes</button></div></form>`;
+        }).join('')}<label>Package<select name="package_name">${Object.keys(packages).map((name) => `<option value="${esc(name)}" ${name === registration.package_name ? 'selected' : ''}>${esc(name)}</option>`).join('')}</select></label></div><div class="modal-foot"><button type="button" class="btn" data-managed-back="${esc(id)}">Cancel</button><button class="btn primary">Save changes</button></div></form>`;
         $('managedEditForm').onsubmit = async (event) => {
           event.preventDefault();
           const updates = Object.fromEntries(new FormData(event.currentTarget));
