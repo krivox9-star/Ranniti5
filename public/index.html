@@ -90,30 +90,31 @@
         align-items: center;
         gap: 12px;
       }
-      .register-sponsor {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 5px;
-      }
       .sponsor-lockup {
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 3px;
+        gap: 8px;
       }
       .sponsor-label {
         color: var(--muted-2);
-        font-size: 10px;
+        font-size: 13px;
         font-weight: 700;
         line-height: 1;
       }
       .sponsor-logo {
         display: block;
-        width: 108px;
-        height: 48px;
+        width: 192px;
+        height: 144px;
         object-fit: contain;
         object-position: center;
+      }
+      .hero-sponsor {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-width: 0;
+        min-height: 220px;
       }
       .enquire {
         display: flex;
@@ -564,10 +565,10 @@
         }
         .nav { min-height: 72px; flex-wrap: wrap; justify-content: center; }
         .header-logo { width: 72px; }
-        .nav-cta { width: 100%; flex-wrap: wrap; justify-content: center; gap: 10px; }
-        .register-sponsor { flex-basis: 100%; }
-        .sponsor-logo { width: 100px; height: 44px; }
+        .sponsor-logo { width: 160px; height: 120px; }
+        .hero-sponsor { min-height: 160px; }
         .enquire { align-items: center; }
+        .nav-cta .btn:last-child { display: none; }
         .hero { padding-top: 32px; }
         .hero h1 { font-size: 3.8rem; }
         .hero-copy { font-size: 1.05rem; }
@@ -597,13 +598,7 @@
           </a>
           <a class="btn btn-secondary" href="/login">Login</a>
           <a class="btn btn-secondary" href="/login">Admin</a>
-          <div class="register-sponsor">
-            <a class="btn btn-primary" href="/register">Register Now</a>
-            <div class="sponsor-lockup">
-              <span class="sponsor-label">Title Sponsor</span>
-              <img class="sponsor-logo" src="/assets/broghar-realty-title-sponsor.png.jpeg" alt="Broghar Realty, Dholera Smart City" />
-            </div>
-          </div>
+          <a class="btn btn-primary" href="/register">Register Now</a>
         </div>
       </div>
     </header>
@@ -653,7 +648,12 @@
               </div>
             </div>
           </div>
-
+          <aside class="hero-sponsor" aria-label="Title Sponsor">
+            <div class="sponsor-lockup">
+              <span class="sponsor-label">Title Sponsor</span>
+              <img class="sponsor-logo" src="/assets/broghar-realty-title-sponsor.png.jpeg" alt="Broghar Realty, Dholera Smart City" />
+            </div>
+          </aside>
         </div>
       </section>
 
