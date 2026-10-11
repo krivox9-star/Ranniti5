@@ -220,6 +220,14 @@ router.get('/admin/registrations', authMiddleware, adminMiddleware, async (req, 
   return res.json({ success: true, registrations: registrations.map((r) => publicRegistration({ ...r, ...(paymentBy.get(r.id) ? { payment_status: paymentBy.get(r.id).status, transaction_id: paymentBy.get(r.id).transaction_id, payment_date: paymentBy.get(r.id).payment_date } : {}), ...(invoiceBy.get(r.id) ? { invoice_number: invoiceBy.get(r.id).invoice_number } : {}), ...(passBy.get(r.id) ? { pass_number: passBy.get(r.id).pass_number } : {}), documents: docsByRegistration.get(r.id) || {} })) });
 });
 
+router.delete('/admin/registrations/:registrationId', authMiddleware, adminMiddleware, async (req, res) => {
+  const registrationId = String(req.params.registrationId || '').trim();
+  const deletion = await (await collection('registrations')).deleteOne({ id: registrationId });
+  if (!deletion.deletedCount) return res.status(404).json({ success: false, message: 'Registration not found' });
+  await (await collection('registration_documents')).deleteMany({ registration_id: registrationId });
+  return res.json({ success: true, registrationId });
+});
+
 router.get('/admin/registrations/export.xlsx', authMiddleware, adminMiddleware, async (req, res) => {
   const registrations = await (await collection('registrations')).find().sort({ created_at: -1 }).toArray();
   const registrationIds = registrations.map((registration) => registration.id);

@@ -11,6 +11,7 @@ import { packages } from '/package-pricing.js';
     const tone = ['Verified', 'Approved'].includes(status) ? 'green' : status === 'Rejected' ? 'red' : 'amber';
     return `<span class="badge ${tone}">${esc(status)}</span>`;
   };
+  let deletionInProgress = false;
   const privateDocument = async (registrationId, type, filename, action = 'download') => {
     const previewWindow = action === 'view' ? window.open('about:blank', '_blank') : null;
     const response = await fetch(`/api/admin/documents/${type}/${encodeURIComponent(registrationId)}`, { headers: { Authorization: `Bearer ${state.token}` } });
@@ -123,7 +124,7 @@ import { packages } from '/package-pricing.js';
     <input id="filterDate" type="date" aria-label="Filter by registration date" />
     <div class="quick-filters" role="group" aria-label="Quick registration filters">${['All', 'Male', 'Female', 'Members', 'Guests', 'Paid', 'Pending'].map((label) => `<button class="btn small quick-filter${label === 'All' ? ' active' : ''}" type="button" data-quick-filter="${label}">${label}</button>`).join('')}</div>`;
   const quickFilterStyle = document.createElement('style');
-  quickFilterStyle.textContent = '.quick-filters{display:flex;gap:7px;flex-wrap:wrap;width:100%}.quick-filter.active{color:#fff;background:var(--red);border-color:var(--red)}.photo-thumb{display:grid;place-items:center;width:46px;height:46px;padding:0;border:1px solid var(--line);border-radius:5px;background:#f3f2f0;overflow:hidden}.photo-thumb img{width:100%;height:100%;object-fit:cover}.photo-view{display:block;max-width:min(100%,520px);max-height:65vh;margin:18px auto;object-fit:contain}';
+  quickFilterStyle.textContent = '.quick-filters{display:flex;gap:7px;flex-wrap:wrap;width:100%}.quick-filter.active{color:#fff;background:var(--red);border-color:var(--red)}.delete-registration{color:#fff!important;background:var(--red)!important;border-color:var(--red)!important}.delete-registration:hover{background:var(--red-dark)!important;border-color:var(--red-dark)!important}.delete-registration:disabled{opacity:.6;cursor:wait}.photo-thumb{display:grid;place-items:center;width:46px;height:46px;padding:0;border:1px solid var(--line);border-radius:5px;background:#f3f2f0;overflow:hidden}.photo-thumb img{width:100%;height:100%;object-fit:cover}.photo-view{display:block;max-width:min(100%,520px);max-height:65vh;margin:18px auto;object-fit:contain}';
   document.head.append(quickFilterStyle);
   document.querySelector('#view-registrations .toolbar')?.after(registrationFilters);
 
@@ -215,7 +216,7 @@ import { packages } from '/package-pricing.js';
         <td>${docs.aadhaar ? `<button class="link" data-secure-document="aadhaar" data-registration-id="${esc(id)}">View / Download</button>` : '—'}</td>
         <td>${docs['payment-proof'] ? `<button class="link" data-secure-document="payment-proof" data-registration-id="${esc(id)}">View / Download</button>` : '—'}</td>
         <td>${date(registration.created_at)}</td>
-        <td><div class="row-actions"><button class="btn small" data-managed-details="${esc(id)}">Open</button><button class="btn small" data-managed-edit="${esc(id)}">Edit</button></div></td>
+        <td><div class="row-actions"><button class="btn small" data-managed-details="${esc(id)}">Open</button><button class="btn small" data-managed-edit="${esc(id)}">Edit</button><button class="btn small delete-registration" type="button" data-managed-delete="${esc(id)}" aria-label="Delete registration ${esc(registration.full_name)}" title="Delete registration"><span aria-hidden="true">&#128465;&#xfe0e;</span> Delete</button></div></td>
       </tr>`;
     }).join('') || '<tr><td colspan="17" class="empty">No registrations match these filters.</td></tr>';
     loadPhotoThumbnails();
@@ -352,6 +353,42 @@ import { packages } from '/package-pricing.js';
   }
 
   window.showDetails = (id, edit = false) => openManagedDetails(id, edit);
+  function confirmManagedDelete(id) {
+    const registration = state.registrations.find((item) => (item.registrationId || item.id) === id);
+    if (!registration) return;
+    $('modalContent').innerHTML = `<h2>Delete registration?</h2><p>Are you sure you want to delete this registration? This action cannot be undone.</p><p><strong>${esc(registration.full_name || 'Unknown member')}</strong><br /><span class="mono">${esc(id)}</span></p><div class="modal-foot"><button class="btn" type="button" data-close>Cancel</button><button class="btn delete-registration" type="button" id="confirmManagedDelete" data-registration-id="${esc(id)}">Confirm Delete</button></div>`;
+    $('modal').classList.remove('hidden');
+  }
+  document.addEventListener('click', async (event) => {
+    const confirmButton = event.target.closest('#confirmManagedDelete');
+    if (!confirmButton) {
+      if (deletionInProgress && event.target.closest('#modal')) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+      return;
+    }
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    if (deletionInProgress) return;
+    deletionInProgress = true;
+    confirmButton.disabled = true;
+    const cancelButton = $('modalContent').querySelector('[data-close]');
+    if (cancelButton) cancelButton.disabled = true;
+    const id = confirmButton.dataset.registrationId;
+    try {
+      await api(`/api/admin/registrations/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      $('modal').classList.add('hidden');
+      await loadData();
+      deletionInProgress = false;
+      notify('Registration deleted successfully');
+    } catch (error) {
+      deletionInProgress = false;
+      notify(error.message || 'Unable to delete registration', true);
+      confirmButton.disabled = false;
+      if (cancelButton) cancelButton.disabled = false;
+    }
+  }, true);
   async function showRegistrationPhoto(id) {
     try {
       const response = await fetch(`/api/admin/documents/professional-photo/${encodeURIComponent(id)}?view=1`, { headers: { Authorization: `Bearer ${state.token}` } });
@@ -363,7 +400,7 @@ import { packages } from '/package-pricing.js';
     } catch (error) { notify(error.message, true); }
   }
   document.addEventListener('click', async (event) => {
-    const target = event.target.closest('[data-managed-details], [data-managed-edit], [data-managed-back], [data-secure-document], [data-photo-open], [data-registration-action], [data-payment-action], [data-save-remark]');
+    const target = event.target.closest('[data-managed-details], [data-managed-edit], [data-managed-delete], [data-managed-back], [data-secure-document], [data-photo-open], [data-registration-action], [data-payment-action], [data-save-remark]');
     if (!target) return;
     if (target.matches('[data-photo-open]')) return showRegistrationPhoto(target.dataset.photoOpen);
     if (target.matches('[data-secure-document]')) {
@@ -374,6 +411,7 @@ import { packages } from '/package-pricing.js';
     }
     if (target.matches('[data-managed-details]')) return openManagedDetails(target.dataset.managedDetails);
     if (target.matches('[data-managed-edit]')) return openManagedDetails(target.dataset.managedEdit, true);
+    if (target.matches('[data-managed-delete]')) return confirmManagedDelete(target.dataset.managedDelete);
     if (target.matches('[data-managed-back]')) return openManagedDetails(target.dataset.managedBack);
     if (target.matches('[data-save-remark]')) {
       const id = target.dataset.saveRemark;
