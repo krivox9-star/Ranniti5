@@ -453,35 +453,33 @@
       }
       .price-stack {
         display: grid;
-        gap: 8px;
-        text-align: center;
-      }
-      .package-price {
-        display: flex;
-        align-items: baseline;
-        justify-content: center;
-        gap: 6px;
-        color: var(--navy);
-      }
-      .package-price .currency {
-        font-size: 1.15rem;
-        font-weight: 700;
-      }
-      .package-price .amount {
-        font-size: clamp(2.2rem, 3vw, 3rem);
-        line-height: 1;
-        font-family: "Bebas Neue", sans-serif;
-        letter-spacing: 0.04em;
-        font-weight: 400;
+        gap: 0;
       }
       .price-breakdown {
+        display: grid;
+        gap: 8px;
         color: var(--muted);
-        font-size: 0.9rem;
-        font-weight: 600;
-        line-height: 1.6;
+        font-size: 0.92rem;
       }
-      .price-breakdown strong {
+      .price-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        line-height: 1.4;
+      }
+      .price-row strong {
         color: var(--navy);
+        text-align: right;
+        white-space: nowrap;
+      }
+      .price-total {
+        border-top: 1px solid rgba(217, 183, 109, 0.7);
+        margin-top: 2px;
+        padding-top: 8px;
+        font-weight: 700;
+      }
+      .price-total strong {
+        font-size: 1.08rem;
       }
       .package-card p {
         margin-top: 18px;
@@ -781,7 +779,11 @@
                     <span class="currency">₹</span>
                     <span class="amount">14,999</span>
                   </div>
-                  <div class="price-breakdown"><strong>Base: ₹14,999</strong><span>GST (18%): ₹2,700</span><span>Total: ₹17,699</span></div>
+                  <div class="price-breakdown">
+                    <div class="price-row"><span>Base Amount</span><strong>₹14,999</strong></div>
+                    <div class="price-row"><span>GST (18%)</span><strong>₹2,700</strong></div>
+                    <div class="price-row price-total"><span>Total</span><strong>₹17,699</strong></div>
+                  </div>
                 </div>
                 <p>Shared stay with all meals and event access.</p>
                 <a class="select-btn package-select" href="/register?package=Triple%20Occupancy">Select Category</a>
@@ -798,7 +800,11 @@
                     <span class="currency">₹</span>
                     <span class="amount">17,499</span>
                   </div>
-                  <div class="price-breakdown"><strong>Base: ₹17,499</strong><span>GST (18%): ₹3,150</span><span>Total: ₹20,649</span></div>
+                  <div class="price-breakdown">
+                    <div class="price-row"><span>Base Amount</span><strong>₹17,499</strong></div>
+                    <div class="price-row"><span>GST (18%)</span><strong>₹3,150</strong></div>
+                    <div class="price-row price-total"><span>Total</span><strong>₹20,649</strong></div>
+                  </div>
                 </div>
                 <p>Private double sharing with all meals and event access.</p>
                 <a class="select-btn package-select" href="/register?package=Double%20Occupancy">Select Category</a>
@@ -816,7 +822,11 @@
                     <span class="currency">₹</span>
                     <span class="amount">32,999</span>
                   </div>
-                  <div class="price-breakdown"><strong>Base: ₹32,999</strong><span>GST (18%): ₹5,940</span><span>Total: ₹38,939</span></div>
+                  <div class="price-breakdown">
+                    <div class="price-row"><span>Base Amount</span><strong>₹32,999</strong></div>
+                    <div class="price-row"><span>GST (18%)</span><strong>₹5,940</strong></div>
+                    <div class="price-row price-total"><span>Total</span><strong>₹38,939</strong></div>
+                  </div>
                 </div>
                 <p>Comfortable family room stay with full event access.</p>
                 <a class="select-btn package-select" href="/register?package=Family%20Room%20%28Double%20Occupancy%29">Select Category</a>
@@ -834,7 +844,11 @@
                     <span class="currency">₹</span>
                     <span class="amount">39,999</span>
                   </div>
-                  <div class="price-breakdown"><strong>Base: ₹39,999</strong><span>GST (18%): ₹7,200</span><span>Total: ₹47,199</span></div>
+                  <div class="price-breakdown">
+                    <div class="price-row"><span>Base Amount</span><strong>₹39,999</strong></div>
+                    <div class="price-row"><span>GST (18%)</span><strong>₹7,200</strong></div>
+                    <div class="price-row price-total"><span>Total</span><strong>₹47,199</strong></div>
+                  </div>
                 </div>
                 <p>Premium family stay including member, spouse, and child access.</p>
                 <a class="select-btn package-select" href="/register?package=Family%20Room%20%28Triple%20Occupancy%29">Select Category</a>
