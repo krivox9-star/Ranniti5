@@ -31,6 +31,8 @@
         --accent-2: #d58a2c;
         --line: rgba(25, 22, 19, 0.1);
         --shadow: 0 24px 48px rgba(28, 24, 22, 0.08);
+        --navy: #0b1d3a;
+        --gold: #d9b76d;
       }
 
       * { box-sizing: border-box; }
@@ -389,64 +391,111 @@
 
       .package-grid {
         display: grid;
-        grid-template-columns: repeat(4, minmax(230px, 1fr));
-        gap: 18px;
+        grid-template-columns: repeat(4, minmax(220px, 1fr));
+        gap: 0;
+        border: 1px solid var(--gold);
+        border-radius: 26px;
+        overflow: hidden;
+        background: rgba(11, 29, 58, 0.96);
+        box-shadow: 0 24px 55px rgba(11, 29, 58, 0.12);
       }
       .package-card {
         position: relative;
-        background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(244, 239, 233, 0.7));
-        border: 1px solid var(--line);
-        border-radius: 24px;
-        padding: 22px 20px 24px;
-        overflow: hidden;
-        transition: transform 0.25s ease, border-color 0.25s ease, background 0.25s ease;
+        background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(244, 239, 233, 0.92));
+        border-left: 1px solid var(--gold);
+        min-width: 0;
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
+      }
+      .package-card:first-child {
+        border-left: none;
       }
       .package-card:hover {
-        transform: translateY(-5px);
-        border-color: rgba(247,165,92,0.45);
-        background: linear-gradient(180deg, rgba(255,255,255,1), rgba(244, 239, 233, 0.88));
+        transform: translateY(-4px);
+        box-shadow: inset 0 0 0 1px rgba(217, 183, 109, 0.7);
       }
-      .package-card.recommended {
-        border-color: rgba(240,75,53,0.5);
-        box-shadow: 0 20px 40px rgba(240,75,53,0.12);
+      .package-header {
+        background: var(--navy);
+        border-bottom: 1px solid var(--gold);
+        padding: 22px 18px 18px;
+        text-align: center;
       }
-      .package-card.recommended h3,
-      .package-card.recommended .price .total {
-        color: var(--accent);
+      .package-header h3 {
+        color: #fff;
+        font-size: clamp(1.6rem, 1.9vw, 2.4rem);
+        line-height: 1.05;
+        letter-spacing: 0.03em;
       }
-      .pkg-badge {
-        position: absolute;
-        right: 18px;
-        top: 18px;
-        background: rgba(240,75,53,0.16);
-        border: 1px solid rgba(240,75,53,0.32);
-        color: #ffb59d;
-        border-radius: 999px;
-        padding: 6px 10px;
-        font-size: 10px;
+      .package-subheading {
+        display: block;
+        margin-top: 8px;
+        color: #eed9a0;
+        font-size: 0.72rem;
+        font-weight: 700;
         letter-spacing: 0.12em;
-        text-transform: uppercase;
+        text-transform: none;
       }
-      .package-card h3 {
-        margin-top: 14px;
-        font-size: 2rem;
-      }
-      .price {
-        margin-top: 18px;
+      .package-content {
         display: flex;
-        align-items: end;
+        flex-direction: column;
+        justify-content: space-between;
+        min-height: 310px;
+        padding: 24px 18px 22px;
+      }
+      .price-stack {
+        display: grid;
         gap: 8px;
+        text-align: center;
       }
-      .price .currency {
-        font-size: 1.3rem;
-        color: var(--muted);
-        margin-bottom: 10px;
+      .package-price {
+        display: flex;
+        align-items: baseline;
+        justify-content: center;
+        gap: 6px;
+        color: var(--navy);
       }
-      .price .total {
-        font-size: clamp(2.3rem, 4vw, 3.2rem);
-        line-height: 0.8;
+      .package-price .currency {
+        font-size: 1.15rem;
+        font-weight: 700;
+      }
+      .package-price .amount {
+        font-size: clamp(2.2rem, 3vw, 3rem);
+        line-height: 1;
         font-family: "Bebas Neue", sans-serif;
         letter-spacing: 0.04em;
+        font-weight: 400;
+      }
+      .price-breakdown {
+        color: var(--muted);
+        font-size: 0.9rem;
+        font-weight: 600;
+        line-height: 1.6;
+      }
+      .price-breakdown strong {
+        color: var(--navy);
+      }
+      .package-card p {
+        margin-top: 18px;
+        color: var(--muted);
+        line-height: 1.6;
+        font-size: 0.95rem;
+      }
+      .select-btn {
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+        margin-top: 18px;
+        padding: 12px 18px;
+        border-radius: 10px;
+        background: rgba(11, 29, 58, 0.96);
+        border: 1px solid rgba(217, 183, 109, 0.8);
+        font-weight: 700;
+        color: #fff;
+        transition: background 0.2s ease, transform 0.2s ease;
+      }
+      .select-btn:hover {
+        background: var(--accent);
+        border-color: var(--accent);
+        transform: translateY(-1px);
       }
       .price .tax { margin-bottom: 2px; color: var(--muted); font-size: 0.95rem; font-weight: 600; }
       .price-breakdown { display: grid; gap: 4px; margin-top: 16px; color: var(--muted); font-size: 0.85rem; }
@@ -461,26 +510,6 @@
         font-size: 0.96rem;
       }
       .pricing-line strong { color: var(--text); }
-      .package-card p {
-        margin-top: 16px;
-        color: var(--muted);
-        line-height: 1.6;
-      }
-      .select-btn {
-        display: inline-flex;
-        margin-top: 18px;
-        padding: 12px 18px;
-        border-radius: 10px;
-        background: rgba(255,255,255,0.8);
-        border: 1px solid var(--line);
-        font-weight: 700;
-        color: var(--text);
-        transition: background 0.2s ease, border-color 0.2s ease;
-      }
-      .select-btn:hover {
-        background: var(--accent);
-        border-color: var(--accent);
-      }
 
       .cta {
         padding: 54px 0 70px;
@@ -542,9 +571,12 @@
       @media (max-width: 980px) {
         .hero-inner,
         .about-grid,
-        .schedule-grid,
-        .package-grid {
+        .schedule-grid {
           grid-template-columns: 1fr 1fr;
+        }
+        .package-grid {
+          grid-template-columns: repeat(4, minmax(250px, 1fr));
+          overflow-x: auto;
         }
         .hero-inner {
           grid-template-columns: 1fr;
@@ -559,9 +591,15 @@
       @media (max-width: 640px) {
         .meta-strip,
         .about-grid,
-        .schedule-grid,
-        .package-grid {
+        .schedule-grid {
           grid-template-columns: 1fr;
+        }
+        .package-grid {
+          grid-template-columns: repeat(4, minmax(260px, 82vw));
+          overflow-x: auto;
+        }
+        .package-card {
+          min-width: 260px;
         }
         .nav { min-height: 72px; flex-wrap: wrap; justify-content: center; }
         .header-logo { width: 72px; }
@@ -723,47 +761,75 @@
           <div class="package-grid">
             <article class="package-card recommended" data-package="Triple Occupancy">
               <span class="pkg-badge">Recommended</span>
-              <h3>Triple Occupancy</h3>
-              <div class="price">
-                <span class="currency">₹</span>
-                <span class="total"></span>
-                <span class="tax">+18%</span>
+              <div class="package-header">
+                <h3>Triple Occupancy</h3>
+                <span class="package-subheading">(per person)</span>
               </div>
-              <p>Group sharing with all meals and event access.</p>
-              <a class="select-btn package-select" href="/register?package=Triple%20Occupancy">Select Category</a>
+              <div class="package-content">
+                <div class="price-stack">
+                  <div class="package-price">
+                    <span class="currency">₹</span>
+                    <span class="amount">14,999</span>
+                  </div>
+                  <div class="price-breakdown"><strong>Base: ₹14,999</strong><span>GST (18%): ₹2,700</span><span>Total: ₹17,699</span></div>
+                </div>
+                <p>Shared stay with all meals and event access.</p>
+                <a class="select-btn package-select" href="/register?package=Triple%20Occupancy">Select Category</a>
+              </div>
             </article>
 
             <article class="package-card" data-package="Double Occupancy">
-              <h3>Double Occupancy</h3>
-              <div class="price">
-                <span class="currency">₹</span>
-                <span class="total"></span>
-                <span class="tax">+18%</span>
+              <div class="package-header">
+                <h3>Double Occupancy</h3>
+                <span class="package-subheading">(per person)</span>
               </div>
-              <p>Shared luxury tent/room with all meals and event access.</p>
-              <a class="select-btn package-select" href="/register?package=Double%20Occupancy">Select Category</a>
+              <div class="package-content">
+                <div class="price-stack">
+                  <div class="package-price">
+                    <span class="currency">₹</span>
+                    <span class="amount">17,499</span>
+                  </div>
+                  <div class="price-breakdown"><strong>Base: ₹17,499</strong><span>GST (18%): ₹3,150</span><span>Total: ₹20,649</span></div>
+                </div>
+                <p>Private double sharing with all meals and event access.</p>
+                <a class="select-btn package-select" href="/register?package=Double%20Occupancy">Select Category</a>
+              </div>
             </article>
 
-            <article class="package-card" data-package="Family + Double Occupancy">
-              <h3>Family + Double Occupancy</h3>
-              <div class="price">
-                <span class="currency">₹</span>
-                <span class="total"></span>
-                <span class="tax">+18%</span>
+            <article class="package-card" data-package="Family Room (Double Occupancy)">
+              <div class="package-header">
+                <h3>Family Room (Double Occupancy)</h3>
+                <span class="package-subheading">(Member + Spouse)</span>
               </div>
-              <p>Family accommodation with all meals and event access.</p>
-              <a class="select-btn package-select" href="/register?package=Family%20%2B%20Double%20Occupancy">Select Category</a>
+              <div class="package-content">
+                <div class="price-stack">
+                  <div class="package-price">
+                    <span class="currency">₹</span>
+                    <span class="amount">32,999</span>
+                  </div>
+                  <div class="price-breakdown"><strong>Base: ₹32,999</strong><span>GST (18%): ₹5,940</span><span>Total: ₹38,939</span></div>
+                </div>
+                <p>Comfortable family room stay with full event access.</p>
+                <a class="select-btn package-select" href="/register?package=Family%20Room%20%28Double%20Occupancy%29">Select Category</a>
+              </div>
             </article>
 
-            <article class="package-card" data-package="Family + Triple Occupancy">
-              <h3>Family + Triple Occupancy</h3>
-              <div class="price">
-                <span class="currency">₹</span>
-                <span class="total"></span>
-                <span class="tax">+18%</span>
+            <article class="package-card" data-package="Family Room (Triple Occupancy)">
+              <div class="package-header">
+                <h3>Family Room (Triple Occupancy)</h3>
+                <span class="package-subheading">(Member + Spouse + Kid)</span>
               </div>
-              <p>Family accommodation with all meals and event access.</p>
-              <a class="select-btn package-select" href="/register?package=Family%20%2B%20Triple%20Occupancy">Select Category</a>
+              <div class="package-content">
+                <div class="price-stack">
+                  <div class="package-price">
+                    <span class="currency">₹</span>
+                    <span class="amount">39,999</span>
+                  </div>
+                  <div class="price-breakdown"><strong>Base: ₹39,999</strong><span>GST (18%): ₹7,200</span><span>Total: ₹47,199</span></div>
+                </div>
+                <p>Premium family stay including member, spouse, and child access.</p>
+                <a class="select-btn package-select" href="/register?package=Family%20Room%20%28Triple%20Occupancy%29">Select Category</a>
+              </div>
             </article>
           </div>
           <div class="package-includes">
