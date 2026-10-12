@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import authRoutes from './src/routes/auth.js';
 import userRoutes from './src/routes/users.js';
 import registrationRoutes from './src/routes/registrations.js';
+import visitorRoutes from './src/routes/visitor.js';
 import { connectDatabase, databaseErrorMessage, databaseStatus, initializeDatabase } from './src/config/database.js';
 
 const app = express();
@@ -54,6 +55,10 @@ app.get('/reset-password', (req, res) => {
 
 app.get('/member', (req, res) => {
   res.sendFile(path.join(publicRoot, 'member.html'));
+});
+
+app.get('/visitor-admin', (req, res) => {
+  res.sendFile(path.join(publicRoot, 'visitor-admin.html'));
 });
 
 app.get('/Admin5.html', (req, res) => {
@@ -108,6 +113,7 @@ const catchAsync = (router) => {
 
 app.use('/api/auth', catchAsync(authRoutes));
 app.use('/api/users', catchAsync(userRoutes));
+app.use('/api', catchAsync(visitorRoutes));
 app.use('/api', catchAsync(registrationRoutes));
 
 app.use((req, res) => {

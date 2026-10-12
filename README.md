@@ -12,6 +12,10 @@ npm start
 ```
 
 The admin account must be created through `/api/auth/register` using the exact email configured as `ADMIN_EMAIL`, then used at `/admin`. Confirmation creates sequential `RN5-INV-001` invoices and `RN5-001` entry passes using MongoDB atomic counters, stores a unique QR token, sends both PDFs through Brevo, and makes QR/manual check-in idempotent.
+
+## Visitor Admin operations
+
+Main Admins can create and manage Visitor Admin accounts from **Visitor Admin Management** in `/admin`. The assigned email and temporary password use the existing `users` collection and bcrypt password hashing. Visitor Admins sign in at `/login` and are routed to `/visitor-admin`; deactivating an account invalidates its access on the next protected request. Visitor accounts can view and filter registrations, download the protected Excel export, view professional photos and entry passes, and record eligible check-ins. They cannot use Main Admin registration, payment, settings, or account-management endpoints. Account changes, exports, and check-ins are recorded in the `audit_logs` collection.
 # Ranniti Backend
 
 A lightweight Express backend with JWT authentication and file-based user storage.

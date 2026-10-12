@@ -79,6 +79,7 @@ router.post('/forgot-password', async (req, res) => {
   const users = await collection('users');
   const user = await users.findOne({ email: normalizedEmail });
   if (!user) return res.json(genericResponse);
+  if (user.role === 'visitor_admin') return res.json(genericResponse);
   const token = crypto.randomBytes(32).toString('hex');
   const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
   const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
@@ -101,7 +102,7 @@ router.post('/reset-password', async (req, res) => {
   if (password.length < 8) return res.status(400).json({ success: false, message: 'Password must be at least 8 characters.' });
   const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
   const users = await collection('users');
-  const user = await users.findOne({ reset_token_hash: tokenHash, reset_token_expires_at: { $gt: new Date().toISOString() } });
+  const user = await users.findOne({ reset_token_hash: tokenHash, reset_token_expires_at: { $gt: new Date().toISOString() }, role: { $ne: 'visitor_admin' } });
   if (!user) return res.status(400).json({ success: false, message: 'This reset link is invalid or expired.' });
   await users.updateOne({ _id: user._id }, { $set: { password_hash: await bcrypt.hash(password, 12), updated_at: new Date().toISOString() }, $unset: { reset_token_hash: '', reset_token_expires_at: '' } });
   return res.json({ success: true, message: 'Password updated. You can sign in now.' });
@@ -137,6 +138,10 @@ router.post('/login', async (req, res) => {
     });
   }
 
+  if (user.role === 'visitor_admin' && normalizedLogin !== String(user.email || '').toLowerCase()) {
+    return res.status(401).json({ success: false, message: 'Invalid email or password' });
+  }
+
   const isValidPassword = await bcrypt.compare(password, user.password_hash);
 
   if (!isValidPassword) {
@@ -146,6 +151,15 @@ router.post('/login', async (req, res) => {
     });
   }
 
+  if (user.role === 'visitor_admin' && (user.account_status !== 'active' || user.active === false)) {
+    return res.status(403).json({ success: false, message: 'This Visitor Admin account is inactive. Contact the Main Admin.' });
+  }
+
+  const lastLoginAt = new Date().toISOString();
+  if (user.role === 'visitor_admin') {
+    await users.updateOne({ _id: user._id }, { $set: { last_login_at: lastLoginAt } });
+  }
+
   const safeUser = {
     id: user.id,
     name: user.name,
@@ -153,6 +167,7 @@ router.post('/login', async (req, res) => {
     role: user.role,
     createdAt: user.created_at,
     updatedAt: user.updated_at,
+    lastLoginAt: user.role === 'visitor_admin' ? lastLoginAt : user.last_login_at,
   };
 
   return res.json({

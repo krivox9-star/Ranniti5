@@ -4,7 +4,7 @@ import { collection } from '../config/database.js';
 
 const router = express.Router();
 
-router.get('/', authMiddleware, async (req, res) => {
+router.get('/', authMiddleware, adminMiddleware, async (req, res) => {
   const users = await (await collection('users')).find({}, { projection: { _id: 0, id: 1, name: 1, email: 1, role: 1, created_at: 1, updated_at: 1 } }).sort({ created_at: -1 }).toArray();
 
   return res.json({
