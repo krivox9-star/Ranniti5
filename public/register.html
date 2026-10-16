@@ -149,7 +149,7 @@
 
             <div class="field"><label for="region">BNI Region</label><input id="region" name="region" required /></div>
             <div class="field"><label for="chapter">BNI Chapter</label><input id="chapter" name="chapter" required /></div>
-            <div class="field"><label for="gstNumber">GST NUMBER <span>(OPTIONAL)</span></label><input id="gstNumber" name="gstNumber" autocapitalize="characters" spellcheck="false" placeholder="GST NUMBER" style="text-transform: uppercase; letter-spacing: 0.04em;" /></div>
+            <div class="field"><label for="gstNumber">GST NUMBER <span>(OPTIONAL; REQUIRED TO CLAIM GST)</span></label><input id="gstNumber" name="gstNumber" maxlength="15" autocapitalize="characters" spellcheck="false" placeholder="15-character GSTIN" style="text-transform: uppercase; letter-spacing: 0.04em;" /></div>
             <div class="field"><label for="city">City</label><input id="city" name="city" required autocomplete="address-level2" /></div>
             <div class="field"><label for="hoodieSize">Hoodie Size</label><select id="hoodieSize" name="hoodieSize" required><option value="">Select size</option><option value="36 – XS">36 – XS</option><option value="38 – S">38 – S</option><option value="40 – M">40 – M</option><option value="42 – L">42 – L</option><option value="44 – XL">44 – XL</option><option value="46 – XXL">46 – XXL</option><option value="48 – 3XL">48 – 3XL</option><option value="50 – 4XL">50 – 4XL</option><option value="52 – 5XL">52 – 5XL</option></select></div>
           </div>
@@ -158,6 +158,7 @@
           <div class="grid">
             <div class="field"><label for="businessName">Business Name</label><input id="businessName" name="businessName" required placeholder="Enter Business Name" /></div>
             <div class="field"><label for="businessCategory">Business Category</label><input id="businessCategory" name="businessCategory" required placeholder="Enter Business Category" /></div>
+            <div class="field"><label for="businessState">Business State</label><input id="businessState" name="businessState" required autocomplete="address-level1" placeholder="State for GST place of supply" /></div>
             <div class="field full"><label for="businessAddress">Business Address</label><textarea id="businessAddress" name="businessAddress" required placeholder="Enter Complete Business Address"></textarea></div>
           </div>
 

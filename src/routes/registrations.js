@@ -78,12 +78,13 @@ router.post('/registrations', parseUpload(upload.fields([{ name: 'aadhaarCard', 
   const stayPartner2 = String(body.stayPartner2 || '').trim();
   const isTriple = packageName === 'Triple Occupancy';
   const isDouble = packageName === 'Double Occupancy';
-  const requiredFields = [body.mobile, body.region, body.chapter, body.city, body.hoodieSize, body.businessIntent, body.businessName, body.businessCategory, body.businessAddress];
+  const requiredFields = [body.mobile, body.region, body.chapter, body.city, body.hoodieSize, body.businessIntent, body.businessName, body.businessCategory, body.businessAddress, body.businessState];
   if (!['Male', 'Female'].includes(body.gender)) return res.status(400).json({ success: false, message: 'Select Male or Female for gender' });
   if (!name || !email || password.length < 8 || !packageName || !amount || requiredFields.some((value) => !String(value || '').trim())) {
     return res.status(400).json({ success: false, message: !packages[packageName] && packageName ? `Unknown package: ${packageName}` : 'Name, email, password (8+ characters) and package are required' });
   }
   if (!hoodieSizes.has(String(body.hoodieSize || '').trim())) return res.status(400).json({ success: false, message: 'Select a valid hoodie chest size' });
+  if (body.gstNumber && !/^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(String(body.gstNumber).trim().toUpperCase())) return res.status(400).json({ success: false, message: 'Enter a valid 15-character GSTIN or leave the field blank' });
   if (body.informationConfirmed !== 'true' || body.termsAccepted !== 'true') return res.status(400).json({ success: false, message: 'Please confirm your information and accept the event terms' });
   if (packageName.startsWith('Family + ') && attendeeNames.length < 3) return res.status(400).json({ success: false, message: 'Three attendee names are required for the selected family package' });
   if (!aadhaarCard || !validDocument(aadhaarCard)) return res.status(400).json({ success: false, message: 'A valid Aadhaar Card PDF, JPG, JPEG or PNG (up to 5 MB) is required' });
@@ -93,7 +94,7 @@ router.post('/registrations', parseUpload(upload.fields([{ name: 'aadhaarCard', 
   const now = new Date().toISOString();
   const savedAttendeeNames = attendeeNames.length ? attendeeNames : [name];
   const guestName = body.guestName || attendeeNames.slice(1).join(', ');
-  const registration = { id, confirmation_token_hash: confirmationTokenHash(confirmationToken), full_name: name, email, mobile: body.mobile || '', company: body.company || '', business_name: String(body.businessName).trim(), business_category: String(body.businessCategory).trim(), business_address: String(body.businessAddress).trim(), information_confirmed: true, terms_accepted: true, guest_name: guestName, attendee_names: savedAttendeeNames, stay_partner_1: isTriple || isDouble ? stayPartner1 : '', stay_partner_2: isTriple ? stayPartner2 : '', region: body.region || '', chapter: body.chapter || '', gst_number: String(body.gstNumber || '').toUpperCase(), city: body.city || '', hoodie_size: body.hoodieSize || '', business_intent: body.businessIntent || '', package_name: packageName, package_price: pricing.base, gst_amount: pricing.gstAmount, gst_percent: pricing.gstPercent, total_amount: amount, amount, status: 'Pending', registration_status: 'Pending', payment_status: 'Pending', admin_remark: '', created_at: now, updated_at: now };
+  const registration = { id, confirmation_token_hash: confirmationTokenHash(confirmationToken), full_name: name, email, mobile: body.mobile || '', company: body.company || '', business_name: String(body.businessName).trim(), business_category: String(body.businessCategory).trim(), business_address: String(body.businessAddress).trim(), business_state: String(body.businessState).trim(), information_confirmed: true, terms_accepted: true, guest_name: guestName, attendee_names: savedAttendeeNames, stay_partner_1: isTriple || isDouble ? stayPartner1 : '', stay_partner_2: isTriple ? stayPartner2 : '', region: body.region || '', chapter: body.chapter || '', gst_number: String(body.gstNumber || '').trim().toUpperCase(), city: body.city || '', hoodie_size: body.hoodieSize || '', business_intent: body.businessIntent || '', package_name: packageName, package_price: pricing.base, gst_amount: pricing.gstAmount, gst_percent: pricing.gstPercent, total_amount: amount, amount, status: 'Pending', registration_status: 'Pending', payment_status: 'Pending', admin_remark: '', created_at: now, updated_at: now };
   registration.gender = body.gender;
   const [registrations, registrationDocuments, users] = await Promise.all([
     collection('registrations'),

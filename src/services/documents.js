@@ -27,6 +27,32 @@ const writePdf = async (filename, draw) => {
   return filePath;
 };
 
+const numberWords = (value) => {
+  const small = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+  const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+  const wordsBelowHundred = (number) => number < 20 ? small[number] : `${tens[Math.floor(number / 10)]}${number % 10 ? ` ${small[number % 10]}` : ''}`;
+  const wordsBelowThousand = (number) => `${number >= 100 ? `${small[Math.floor(number / 100)]} Hundred${number % 100 ? ' ' : ''}` : ''}${number % 100 ? wordsBelowHundred(number % 100) : ''}`;
+  const groups = [[10000000, 'Crore'], [100000, 'Lakh'], [1000, 'Thousand'], [100, 'Hundred']];
+  let remaining = Math.floor(Math.max(0, Number(value) || 0));
+  const parts = [];
+  for (const [size, label] of groups) {
+    const count = Math.floor(remaining / size);
+    if (count) {
+      parts.push(`${count < 1000 ? wordsBelowThousand(count) : numberWords(count)} ${label}`);
+      remaining %= size;
+    }
+  }
+  if (remaining) parts.push(wordsBelowHundred(remaining));
+  return parts.join(' ') || 'Zero';
+};
+
+const amountInWords = (amount) => {
+  const paise = Math.round((Number(amount) || 0) * 100);
+  const rupees = Math.floor(paise / 100);
+  const remainder = paise % 100;
+  return `Indian Rupees ${numberWords(rupees)}${remainder ? ` and ${numberWords(remainder)} Paise` : ''} Only`;
+};
+
 export const createArtifacts = async (registration, payment) => {
   const invoices = await collection('invoices');
   const passes = await collection('entry_passes');
@@ -38,6 +64,13 @@ export const createArtifacts = async (registration, payment) => {
   const qrToken = existingPass?.qr_token || `RANNITI5:${registration.id}:${uuidv4()}`;
   const eventDate = '18–20 December 2026';
   const eventVenue = 'Dhordo, Kutch';
+  const supplierName = process.env.GST_SUPPLIER_NAME || 'IMPERIAL INNOVENTURES';
+  const supplierAddress = (process.env.GST_SUPPLIER_ADDRESS || 'GROUND FLOOR, SHOP NO. 5|PLOT NO. 231, WARD - 12B|RATNAKALA ARCADE|GANDHIDHAM').split('|');
+  const supplierGstNumber = process.env.GST_SUPPLIER_GSTIN || '24ADSPV9796P1ZW';
+  const supplierState = process.env.GST_SUPPLIER_STATE || 'Gujarat';
+  const supplierStateCode = process.env.GST_SUPPLIER_STATE_CODE || supplierGstNumber.slice(0, 2);
+  const supplierPan = process.env.GST_SUPPLIER_PAN || 'ADSPV9796P';
+  const hsnSac = process.env.GST_HSN_SAC || '998311';
   const drawFooter = (doc) => {
     doc.fillColor('#77736f').font('Helvetica').fontSize(8).text('RANNITI 5 Strategy Summit  |  BNI Kutch  |  Dhordo, Kutch', 48, 776, { width: 499, align: 'center' });
   };
@@ -60,46 +93,109 @@ export const createArtifacts = async (registration, payment) => {
     doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(8).text(text, x, y, { width, align: 'left' });
   };
   const invoicePath = await writePdf(`${invoiceNumber}.pdf`, (doc) => {
-    const amount = `INR ${Number(registration.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
-    const invoiceDate = new Date(now).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' });
-    doc.rect(0, 0, 595, 841).fill('#ffffff');
-    doc.save().path('M 395 0 L 595 0 L 595 154 L 438 114 Z').fill('#b50813').restore();
-    doc.save().path('M 365 0 L 595 0 L 595 132 L 420 93 Z').fill('#e11925').restore();
-    drawHeaderText(doc, 'BIGGER NETWORKS', 450, 40, 120);
-    drawHeaderText(doc, 'STRONGER BUSINESS', 450, 56, 120);
-    doc.fillColor('#151c2b').font('Helvetica-Bold').fontSize(31).text('INVOICE', 76, 172);
-    doc.fillColor('#38465c').font('Helvetica').fontSize(11).text('RANNITI 5  ·  EVENT REGISTRATION', 77, 211);
-    doc.fillColor('#d71920').rect(48, 246, 499, 2).fill();
-    drawField(doc, 'Invoice number', invoiceNumber, 48, 274, 160);
-    doc.fillColor('#d0d5dd').rect(212, 269, 1, 46).fill();
-    drawField(doc, 'Date', invoiceDate, 236, 274, 240);
-    doc.fillColor('#16a05d').roundedRect(454, 270, 93, 31, 16).fill();
-    doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(10).text('PAID', 454, 280, { width: 93, align: 'center' });
-    doc.fillColor('#f4f5f8').roundedRect(48, 344, 499, 112, 7).fill();
-    doc.fillColor('#d71920').circle(83, 400, 24).fill();
-    doc.fillColor('#ffffff').circle(83, 392, 8).fill().roundedRect(72, 402, 22, 14, 7).fill();
-    doc.fillColor('#68758a').font('Helvetica').fontSize(10).text('Billed to', 123, 369);
-    drawFitText(doc, registration.full_name, 123, 389, 408, { color: '#1d2a40', font: 'Helvetica-Bold', fontSize: 15, minFontSize: 10 });
-    drawFitText(doc, `Email: ${registration.email}`, 123, 414, 408, { color: '#38465c', fontSize: 10, minFontSize: 8 });
-    drawFitText(doc, `Phone: ${registration.mobile || '-'}`, 123, 433, 408, { color: '#38465c', fontSize: 10, minFontSize: 8 });
-    drawField(doc, 'Registration ID', registration.id, 48, 488, 235);
-    drawField(doc, 'Transaction ID', payment.transaction_id || 'Manual confirmation', 310, 488, 237);
-    doc.fillColor('#d71920').rect(48, 548, 499, 35).fill();
-    doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(11).text('Package', 64, 560);
-    doc.text('Amount', 445, 560, { width: 85, align: 'right' });
-    doc.fillColor('#f9fafc').rect(48, 583, 499, 58).fill();
-    doc.fillColor('#1d2a40').font('Helvetica').fontSize(10).text(registration.package_name || 'RANNITI 5 event registration', 64, 606, { width: 335 });
-    doc.fillColor('#1d2a40').font('Helvetica-Bold').fontSize(11).text(amount, 400, 606, { width: 116, align: 'right' });
-    doc.fillColor('#fff3f3').roundedRect(48, 662, 499, 77, 7).fill();
-    doc.fillColor('#d71920').circle(83, 700, 21).fill();
-    doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(21).text('₹', 75, 689);
-    doc.fillColor('#68758a').font('Helvetica').fontSize(10).text('Amount paid', 123, 684);
-    doc.fillColor('#d71920').font('Helvetica-Bold').fontSize(21).text(amount, 123, 700);
-    doc.fillColor('#16a05d').roundedRect(403, 681, 113, 36, 18).fill();
-    doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(12).text('PAID', 403, 693, { width: 113, align: 'center' });
-    doc.fillColor('#d71920').font('Helvetica-Oblique').fontSize(18).text('Thank You!', 48, 746);
-    doc.save().rect(0, 790, 595, 51).fill('#151c2b').restore();
-    drawFitText(doc, 'RANNITI 5 Strategy Summit  |  BNI Kutch  |  Dhordo, Kutch', 48, 811, 499, { color: '#ffffff', fontSize: 8, minFontSize: 7, align: 'center' });
+    const total = Number(registration.amount ?? registration.total_amount ?? 0);
+    const taxRate = Number(registration.gst_percent || 18);
+    const taxable = Number(registration.package_price ?? total / (1 + taxRate / 100));
+    const taxTotal = Number(registration.gst_amount ?? total - taxable);
+    const roundOff = Math.round((total - taxable - taxTotal) * 100) / 100;
+    const buyerGstNumber = String(registration.gst_number || '').toUpperCase();
+    const buyerState = registration.business_state || (buyerGstNumber ? `State code ${buyerGstNumber.slice(0, 2)}` : supplierState);
+    const sameState = buyerGstNumber
+      ? buyerGstNumber.slice(0, 2) === supplierStateCode
+      : buyerState.trim().toLowerCase() === supplierState.trim().toLowerCase();
+    const cgst = sameState ? Math.round(taxTotal / 2 * 100) / 100 : 0;
+    const sgst = sameState ? Math.round((taxTotal - cgst) * 100) / 100 : 0;
+    const igst = sameState ? 0 : taxTotal;
+    const format = (value) => Number(value).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const invoiceDate = new Date(now).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' });
+    const left = 38;
+    const width = 519;
+    const border = '#555555';
+    const drawBox = (x, y, w, h) => doc.rect(x, y, w, h).lineWidth(0.6).strokeColor(border).stroke();
+    const cell = (x, y, w, h, value, { bold = false, align = 'left', size = 8, padding = 5 } = {}) => {
+      drawBox(x, y, w, h);
+      doc.fillColor('#111111').font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(size)
+        .text(String(value ?? ''), x + padding, y + padding, { width: w - padding * 2, height: h - padding * 2, align, valign: 'center' });
+    };
+    const text = (value, x, y, w, { bold = false, size = 8, align = 'left' } = {}) => {
+      doc.fillColor('#111111').font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(size)
+        .text(String(value ?? ''), x, y, { width: w, align, lineGap: 1 });
+    };
+    const amountY = 314;
+    const columns = [26, 211, 55, 45, 63, 30, 89];
+    const columnX = columns.map((_, index) => left + columns.slice(0, index).reduce((sum, columnWidth) => sum + columnWidth, 0));
+    const row = (y, height, values, options = {}) => columns.forEach((columnWidth, index) => cell(columnX[index], y, columnWidth, height, values[index], { ...options, align: index === 1 ? 'left' : index === 0 || index === 2 ? 'center' : 'right' }));
+    const supplierLines = [supplierName, ...supplierAddress, `GSTIN/UIN: ${supplierGstNumber}`, `State Name: ${supplierState}, Code: ${supplierStateCode}`];
+    const billedName = registration.business_name || registration.company || registration.full_name || 'Member';
+    const billedAddress = [registration.business_address, [registration.city, registration.business_state].filter(Boolean).join(', ')].filter(Boolean).join('\n');
+    const paymentReference = payment.transaction_id || 'Manual confirmation';
+
+    doc.rect(0, 0, 595, 842).fill('#ffffff');
+    text('Tax Invoice', left, 28, width, { bold: true, size: 17, align: 'center' });
+    drawBox(left, 57, 310, 136);
+    supplierLines.forEach((line, index) => text(line, left + 7, 65 + index * 17, 296, { bold: index === 0, size: index === 0 ? 11 : 8 }));
+    const metaX = left + 310;
+    cell(metaX, 57, 108, 34, 'Invoice No.', { size: 8 });
+    cell(metaX + 108, 57, 101, 34, 'Dated', { size: 8 });
+    cell(metaX, 91, 108, 38, invoiceNumber, { bold: true, size: 8 });
+    cell(metaX + 108, 91, 101, 38, invoiceDate, { bold: true, size: 8 });
+    cell(metaX, 129, 108, 30, 'Payment reference', { size: 8 });
+    cell(metaX + 108, 129, 101, 30, 'Status', { size: 8 });
+    cell(metaX, 159, 108, 34, paymentReference, { size: 7 });
+    cell(metaX + 108, 159, 101, 34, 'PAID', { bold: true, size: 9 });
+
+    drawBox(left, 193, 310, 111);
+    text('Buyer (Bill to)', left + 7, 200, 296, { size: 8 });
+    text(billedName, left + 7, 216, 296, { bold: true, size: 10 });
+    text(`Attn: ${registration.full_name || ''}`, left + 7, 232, 296, { size: 8 });
+    text(billedAddress || 'Address not provided', left + 7, 247, 296, { size: 8 });
+    text(`GSTIN/UIN: ${buyerGstNumber || 'Unregistered recipient'}`, left + 7, 278, 296, { size: 8 });
+    text(`State / Place of Supply: ${buyerState}`, left + 7, 291, 296, { size: 8 });
+    drawBox(metaX, 193, 209, 111);
+    text('Registration ID', metaX + 7, 201, 195, { size: 8 });
+    text(registration.id, metaX + 7, 217, 195, { bold: true, size: 8 });
+    text('Description of service', metaX + 7, 239, 195, { size: 8 });
+    text('RANNITI 5 event registration', metaX + 7, 255, 195, { bold: true, size: 8 });
+    text('Supply: event registration service', metaX + 7, 277, 195, { size: 8 });
+
+    row(amountY, 31, ['Sl No.', 'Particulars', 'HSN/SAC', 'Quantity', 'Rate', 'per', 'Amount'], { bold: true, size: 7 });
+    row(amountY + 31, 34, ['1', registration.package_name || 'RANNITI 5 event registration', hsnSac, '1', format(taxable), 'Event', format(taxable)], { size: 7 });
+    let currentY = amountY + 65;
+    if (cgst || igst) {
+      row(currentY, 27, ['', sameState ? `OUTPUT CGST @ ${taxRate / 2}%` : `OUTPUT IGST @ ${taxRate}%`, '', '', sameState ? `${format(taxRate / 2)}%` : `${format(taxRate)}%`, '', format(sameState ? cgst : igst)], { size: 7 });
+      currentY += 27;
+    }
+    if (sgst) {
+      row(currentY, 27, ['', `OUTPUT SGST @ ${taxRate / 2}%`, '', '', `${format(taxRate / 2)}%`, '', format(sgst)], { size: 7 });
+      currentY += 27;
+    }
+    if (roundOff) {
+      row(currentY, 27, ['', 'ROUND OFF', '', '', '', '', format(roundOff)], { size: 7 });
+      currentY += 27;
+    }
+    row(currentY, 30, ['', '', '', '', '', 'Total', `₹ ${format(total)}`], { bold: true, size: 8 });
+    currentY += 30;
+    cell(left, currentY, width, 43, `Amount Chargeable (in words): ${amountInWords(total)}`, { bold: true, size: 8 });
+    currentY += 43;
+
+    const taxColumns = [115, 83, 51, 67, 51, 67, 85];
+    const taxX = taxColumns.map((_, index) => left + taxColumns.slice(0, index).reduce((sum, columnWidth) => sum + columnWidth, 0));
+    const taxHeadings = ['HSN/SAC', 'Taxable Value', sameState ? 'CGST Rate' : 'IGST Rate', sameState ? 'CGST Amount' : 'IGST Amount', 'SGST Rate', 'SGST Amount', 'Tax Amount'];
+    taxColumns.forEach((columnWidth, index) => cell(taxX[index], currentY, columnWidth, 33, taxHeadings[index], { bold: true, align: 'center', size: 6 }));
+    currentY += 33;
+    const taxValues = [hsnSac, format(taxable), sameState ? `${format(taxRate / 2)}%` : `${format(taxRate)}%`, format(sameState ? cgst : igst), sameState ? `${format(taxRate / 2)}%` : '-', format(sgst), format(taxTotal)];
+    taxColumns.forEach((columnWidth, index) => cell(taxX[index], currentY, columnWidth, 25, taxValues[index], { align: index ? 'right' : 'center', size: 7 }));
+    currentY += 25;
+    const taxTotals = ['Total', format(taxable), '', format(sameState ? cgst : igst), '', format(sgst), format(taxTotal)];
+    taxColumns.forEach((columnWidth, index) => cell(taxX[index], currentY, columnWidth, 25, taxTotals[index], { bold: true, align: index ? 'right' : 'center', size: 7 }));
+    currentY += 31;
+    text(`Tax Amount (in words): ${amountInWords(taxTotal)}`, left, currentY, width, { size: 8 });
+    currentY += 34;
+    drawBox(left, currentY, width, 63);
+    text(`Company's PAN: ${supplierPan}`, left + 7, currentY + 9, 220, { size: 8 });
+    text(`for ${supplierName}`, left + 220, currentY + 9, 292, { bold: true, size: 8, align: 'right' });
+    text('Authorised Signatory', left + 220, currentY + 42, 292, { size: 8, align: 'right' });
+    text('This is a Computer Generated Invoice', left, currentY + 72, width, { size: 8, align: 'center' });
   });
   const qrData = await QRCode.toDataURL(qrToken, { margin: 1, width: 220 });
   const entryPassPath = await writePdf(`${passNumber}.pdf`, (doc) => {
@@ -165,7 +261,7 @@ export const sendConfirmationEmail = async (registration, artifacts) => {
         sender: { name: process.env.BREVO_SENDER_NAME || 'RANNITI 5', email: process.env.BREVO_SENDER_EMAIL },
         to: [{ email: registration.email, name: registration.full_name }],
         subject,
-        textContent: `Payment confirmed for ${registration.full_name}. Registration ID: ${registration.id}. Entry Pass: ${artifacts.entryPass.pass_number}.`,
+        textContent: `Payment confirmed for ${registration.full_name}. Your GST tax invoice and entry pass are attached. Please check that the billing name, address, and GSTIN are correct for your records. Registration ID: ${registration.id}. Entry Pass: ${artifacts.entryPass.pass_number}.`,
         attachment: attachments,
       }),
     });
