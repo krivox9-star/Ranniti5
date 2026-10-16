@@ -100,12 +100,8 @@ export const createArtifacts = async (registration, payment) => {
     const roundOff = Math.round((total - taxable - taxTotal) * 100) / 100;
     const buyerGstNumber = String(registration.gst_number || '').toUpperCase();
     const buyerState = registration.business_state || (buyerGstNumber ? `State code ${buyerGstNumber.slice(0, 2)}` : supplierState);
-    const sameState = buyerGstNumber
-      ? buyerGstNumber.slice(0, 2) === supplierStateCode
-      : buyerState.trim().toLowerCase() === supplierState.trim().toLowerCase();
-    const cgst = sameState ? Math.round(taxTotal / 2 * 100) / 100 : 0;
-    const sgst = sameState ? Math.round((taxTotal - cgst) * 100) / 100 : 0;
-    const igst = sameState ? 0 : taxTotal;
+    const cgst = Math.round(taxTotal / 2 * 100) / 100;
+    const sgst = Math.round((taxTotal - cgst) * 100) / 100;
     const format = (value) => Number(value).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const invoiceDate = new Date(now).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' });
     const left = 38;
@@ -161,14 +157,10 @@ export const createArtifacts = async (registration, payment) => {
     row(amountY, 31, ['Sl No.', 'Particulars', 'HSN/SAC', 'Quantity', 'Rate', 'per', 'Amount'], { bold: true, size: 7 });
     row(amountY + 31, 34, ['1', registration.package_name || 'RANNITI 5 event registration', hsnSac, '1', format(taxable), 'Event', format(taxable)], { size: 7 });
     let currentY = amountY + 65;
-    if (cgst || igst) {
-      row(currentY, 27, ['', sameState ? `OUTPUT CGST @ ${taxRate / 2}%` : `OUTPUT IGST @ ${taxRate}%`, '', '', sameState ? `${format(taxRate / 2)}%` : `${format(taxRate)}%`, '', format(sameState ? cgst : igst)], { size: 7 });
-      currentY += 27;
-    }
-    if (sgst) {
-      row(currentY, 27, ['', `OUTPUT SGST @ ${taxRate / 2}%`, '', '', `${format(taxRate / 2)}%`, '', format(sgst)], { size: 7 });
-      currentY += 27;
-    }
+    row(currentY, 27, ['', `OUTPUT CGST @ ${taxRate / 2}%`, '', '', `${format(taxRate / 2)}%`, '', format(cgst)], { size: 7 });
+    currentY += 27;
+    row(currentY, 27, ['', `OUTPUT SGST @ ${taxRate / 2}%`, '', '', `${format(taxRate / 2)}%`, '', format(sgst)], { size: 7 });
+    currentY += 27;
     if (roundOff) {
       row(currentY, 27, ['', 'ROUND OFF', '', '', '', '', format(roundOff)], { size: 7 });
       currentY += 27;
@@ -180,13 +172,13 @@ export const createArtifacts = async (registration, payment) => {
 
     const taxColumns = [115, 83, 51, 67, 51, 67, 85];
     const taxX = taxColumns.map((_, index) => left + taxColumns.slice(0, index).reduce((sum, columnWidth) => sum + columnWidth, 0));
-    const taxHeadings = ['HSN/SAC', 'Taxable Value', sameState ? 'CGST Rate' : 'IGST Rate', sameState ? 'CGST Amount' : 'IGST Amount', 'SGST Rate', 'SGST Amount', 'Tax Amount'];
+    const taxHeadings = ['HSN/SAC', 'Taxable Value', 'CGST Rate', 'CGST Amount', 'SGST Rate', 'SGST Amount', 'Tax Amount'];
     taxColumns.forEach((columnWidth, index) => cell(taxX[index], currentY, columnWidth, 33, taxHeadings[index], { bold: true, align: 'center', size: 6 }));
     currentY += 33;
-    const taxValues = [hsnSac, format(taxable), sameState ? `${format(taxRate / 2)}%` : `${format(taxRate)}%`, format(sameState ? cgst : igst), sameState ? `${format(taxRate / 2)}%` : '-', format(sgst), format(taxTotal)];
+    const taxValues = [hsnSac, format(taxable), `${format(taxRate / 2)}%`, format(cgst), `${format(taxRate / 2)}%`, format(sgst), format(taxTotal)];
     taxColumns.forEach((columnWidth, index) => cell(taxX[index], currentY, columnWidth, 25, taxValues[index], { align: index ? 'right' : 'center', size: 7 }));
     currentY += 25;
-    const taxTotals = ['Total', format(taxable), '', format(sameState ? cgst : igst), '', format(sgst), format(taxTotal)];
+    const taxTotals = ['Total', format(taxable), '', format(cgst), '', format(sgst), format(taxTotal)];
     taxColumns.forEach((columnWidth, index) => cell(taxX[index], currentY, columnWidth, 25, taxTotals[index], { bold: true, align: index ? 'right' : 'center', size: 7 }));
     currentY += 31;
     text(`Tax Amount (in words): ${amountInWords(taxTotal)}`, left, currentY, width, { size: 8 });
