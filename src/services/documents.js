@@ -70,7 +70,7 @@ export const createArtifacts = async (registration, payment) => {
   const supplierState = process.env.GST_SUPPLIER_STATE || 'Gujarat';
   const supplierStateCode = process.env.GST_SUPPLIER_STATE_CODE || supplierGstNumber.slice(0, 2);
   const supplierPan = process.env.GST_SUPPLIER_PAN || 'ADSPV9796P';
-  const hsnSac = process.env.GST_HSN_SAC || '998311';
+  const hsnSac = '998596';
   const drawFooter = (doc) => {
     doc.fillColor('#77736f').font('Helvetica').fontSize(8).text('RANNITI 5 Strategy Summit  |  BNI Kutch  |  Dhordo, Kutch', 48, 776, { width: 499, align: 'center' });
   };
@@ -151,11 +151,11 @@ export const createArtifacts = async (registration, payment) => {
     text('Registration ID', metaX + 7, 201, 195, { size: 8 });
     text(registration.id, metaX + 7, 217, 195, { bold: true, size: 8 });
     text('Description of service', metaX + 7, 239, 195, { size: 8 });
-    text('RANNITI 5 event registration', metaX + 7, 255, 195, { bold: true, size: 8 });
+    text('Registration fees for Ranniti 5', metaX + 7, 255, 195, { bold: true, size: 8 });
     text('Supply: event registration service', metaX + 7, 277, 195, { size: 8 });
 
     row(amountY, 31, ['Sl No.', 'Particulars', 'HSN/SAC', 'Quantity', 'Rate', 'per', 'Amount'], { bold: true, size: 7 });
-    row(amountY + 31, 34, ['1', registration.package_name || 'RANNITI 5 event registration', hsnSac, '1', format(taxable), 'Event', format(taxable)], { size: 7 });
+    row(amountY + 31, 34, ['1', 'Registration fees for Ranniti 5', hsnSac, '1', format(taxable), 'Event', format(taxable)], { size: 7 });
     let currentY = amountY + 65;
     row(currentY, 27, ['', `OUTPUT CGST @ ${taxRate / 2}%`, '', '', `${format(taxRate / 2)}%`, '', format(cgst)], { size: 7 });
     currentY += 27;
