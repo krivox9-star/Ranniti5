@@ -56,6 +56,7 @@ export const initializeDatabase = async () => {
   await Promise.all([
     db.collection('users').createIndex({ email: 1 }, { unique: true }),
     db.collection('registrations').createIndex({ id: 1 }, { unique: true }),
+    db.collection('registrations').createIndex({ created_at: 1, id: 1 }),
     db.collection('registration_documents').createIndex({ registration_id: 1, type: 1 }, { unique: true }),
     db.collection('payments').createIndex({ registration_id: 1 }, { unique: true }),
     db.collection('invoices').createIndex({ registration_id: 1 }, { unique: true }),

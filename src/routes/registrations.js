@@ -43,6 +43,25 @@ const validProfessionalPhoto = (file) => {
   return bytes.length >= 12 && bytes.subarray(0, 4).toString() === 'RIFF' && bytes.subarray(8, 12).toString() === 'WEBP';
 };
 const confirmationTokenHash = (token) => crypto.createHash('sha256').update(String(token || '')).digest('hex');
+const isHostedRuntime = Boolean(process.env.RENDER || process.env.VERCEL || process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME);
+const liveRegistrationCursorSecret = process.env.JWT_SECRET || process.env.DOCUMENT_ENCRYPTION_KEY || (isHostedRuntime ? '' : 'ranniti-dev-secret');
+const encodeRegistrationCursor = (createdAt, id) => {
+  const payload = Buffer.from(JSON.stringify({ createdAt, id })).toString('base64url');
+  const signature = crypto.createHmac('sha256', liveRegistrationCursorSecret).update(payload).digest('base64url');
+  return `${payload}.${signature}`;
+};
+const decodeRegistrationCursor = (cursor) => {
+  const [payload, signature, extra] = cursor.split('.');
+  if (!payload || !signature || extra) return null;
+  const expected = crypto.createHmac('sha256', liveRegistrationCursorSecret).update(payload).digest();
+  const provided = Buffer.from(signature, 'base64url');
+  if (provided.length !== expected.length || !crypto.timingSafeEqual(provided, expected)) return null;
+  try {
+    return JSON.parse(Buffer.from(payload, 'base64url').toString());
+  } catch {
+    return null;
+  }
+};
 const encryptDocument = (bytes) => {
   const iv = crypto.randomBytes(12);
   const cipher = crypto.createCipheriv('aes-256-gcm', documentEncryptionKey, iv);
@@ -59,6 +78,44 @@ const decryptDocument = (document) => {
 };
 const hoodieSizes = new Set(['36 – XS', '38 – S', '40 – M', '42 – L', '44 – XL', '46 – XXL', '48 – 3XL', '50 – 4XL', '52 – 5XL']);
 const publicRegistration = (r) => { const { confirmation_token_hash, ...safeRegistration } = r; return { ...safeRegistration, registrationId: r.id, package: r.package_name, paymentStatus: r.payment_status, transactionId: r.transaction_id, paymentDate: r.payment_date, entryPassNumber: r.pass_number, invoiceNumber: r.invoice_number }; };
+
+router.get('/registrations/live', async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  if (!liveRegistrationCursorSecret) {
+    return res.status(503).json({ success: false, message: 'Registration feed is not configured' });
+  }
+  const cursor = String(req.query.cursor || '');
+  if (!cursor) {
+    return res.json({ registrations: [], cursor: encodeRegistrationCursor(new Date().toISOString(), '') });
+  }
+
+  const position = decodeRegistrationCursor(cursor);
+  if (
+    !position ||
+    typeof position.createdAt !== 'string' ||
+    Number.isNaN(Date.parse(position.createdAt)) ||
+    typeof position.id !== 'string' ||
+    position.id.length > 128
+  ) {
+    return res.status(400).json({ success: false, message: 'Invalid registration cursor' });
+  }
+
+  const rows = await (await collection('registrations')).find({
+    $or: [
+      { created_at: { $gt: position.createdAt } },
+      { created_at: position.createdAt, id: { $gt: position.id } },
+    ],
+  }, { projection: { id: 1, full_name: 1, created_at: 1, _id: 0 } })
+    .sort({ created_at: 1, id: 1 })
+    .limit(50)
+    .toArray();
+
+  const last = rows.at(-1);
+  return res.json({
+    registrations: rows.map((registration) => ({ name: registration.full_name })),
+    cursor: last ? encodeRegistrationCursor(last.created_at, last.id) : cursor,
+  });
+});
 
 router.post('/registrations', parseUpload(upload.fields([{ name: 'aadhaarCard', maxCount: 1 }, { name: 'professionalPhoto', maxCount: 1 }])), requireDocumentKey, async (req, res) => {
   const body = req.body || {};

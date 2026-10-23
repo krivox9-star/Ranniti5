@@ -575,6 +575,41 @@
         text-align: right;
         font-size: 0.92rem;
       }
+      .registration-toast {
+        position: fixed;
+        z-index: 100;
+        left: 24px;
+        bottom: 24px;
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        width: min(360px, calc(100vw - 32px));
+        padding: 15px 18px;
+        border: 1px solid var(--line);
+        border-left: 4px solid var(--accent);
+        border-radius: 10px;
+        background: var(--panel-strong);
+        box-shadow: 0 16px 40px rgba(28, 24, 22, 0.18);
+        color: var(--text);
+        font-size: 15px;
+        line-height: 1.45;
+        opacity: 0;
+        transform: translate3d(-24px, 0, 0);
+        transition: opacity 320ms ease, transform 320ms ease;
+        pointer-events: none;
+      }
+      .registration-toast.is-visible {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+      }
+      .registration-toast[hidden] { display: none; }
+      .registration-toast strong { overflow-wrap: anywhere; }
+      @media (max-width: 640px) {
+        .registration-toast { left: 16px; bottom: 16px; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .registration-toast { transition-duration: 1ms; }
+      }
 
       @media (max-width: 980px) {
         .hero-inner,
@@ -933,6 +968,71 @@
       updateCountdown();
       setInterval(updateCountdown, 1000);
 
+    </script>
+    <script>
+      (() => {
+        const toast = document.createElement('div');
+        toast.className = 'registration-toast';
+        toast.setAttribute('role', 'status');
+        toast.setAttribute('aria-live', 'polite');
+        toast.setAttribute('aria-atomic', 'true');
+        toast.hidden = true;
+        document.body.append(toast);
+
+        let cursor = '';
+        let showing = false;
+        const pendingNames = [];
+
+        function showNext() {
+          if (showing || !pendingNames.length) return;
+          showing = true;
+          const name = pendingNames.shift();
+          const celebration = document.createElement('span');
+          celebration.setAttribute('aria-hidden', 'true');
+          celebration.textContent = '\u{1F389}';
+          const message = document.createElement('span');
+          const memberName = document.createElement('strong');
+          memberName.textContent = name;
+          message.append(memberName, document.createTextNode(' just registered for RANNITI 5!'));
+          toast.replaceChildren(celebration, message);
+          toast.hidden = false;
+          requestAnimationFrame(() => toast.classList.add('is-visible'));
+
+          window.setTimeout(() => {
+            toast.classList.remove('is-visible');
+            window.setTimeout(() => {
+              toast.hidden = true;
+              showing = false;
+              showNext();
+            }, 340);
+          }, 5000);
+        }
+
+        async function pollRegistrations() {
+          try {
+            const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : '';
+            const response = await fetch(`/api/registrations/live${query}`, { cache: 'no-store' });
+            if (!response.ok) throw new Error('Registration feed unavailable');
+            const data = await response.json();
+            if (typeof data.cursor !== 'string' || !Array.isArray(data.registrations)) {
+              throw new Error('Invalid registration feed response');
+            }
+            cursor = data.cursor;
+            data.registrations.forEach((registration) => {
+              if (typeof registration.name === 'string' && registration.name.trim()) {
+                pendingNames.push(registration.name.trim());
+              }
+            });
+            showNext();
+          } catch {
+            // Retry on the next interval without interrupting the homepage.
+          } finally {
+            window.setTimeout(pollRegistrations, 5000);
+          }
+        }
+
+        pollRegistrations();
+      })();
     </script>
   </body>
 </html>
